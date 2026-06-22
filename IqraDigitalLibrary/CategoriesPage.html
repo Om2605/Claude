@@ -6,21 +6,23 @@
 <template id="page-categories">
   <section class="space-y-6">
     <div>
-      <h2 class="text-2xl font-bold">Category Management</h2>
-      <p class="text-slate-400 text-sm">Departments and subject groups used to organise media</p>
+      <h2 class="text-2xl font-bold" data-i18n="pageCatTitle">จัดการหมวดหมู่</h2>
+      <p class="text-slate-400 text-sm" data-i18n="pageCatSub">แผนกและกลุ่มสาระสำหรับจัดหมวดหมู่สื่อ</p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
       <!-- Add form -->
       <div class="ui-card shadow-card p-5 h-fit">
-        <h3 class="font-semibold mb-4"><i class="fa-solid fa-plus text-brand-500 mr-2"></i>Add Category</h3>
+        <h3 class="font-semibold mb-4">
+          <i class="fa-solid fa-plus text-brand-500 mr-2"></i><span data-i18n="addCategoryTitle">เพิ่มหมวดหมู่</span>
+        </h3>
         <form id="cat-form" class="space-y-3">
           <div>
-            <label class="label">Name <span class="text-red-500">*</span></label>
+            <label class="label"><span data-i18n="fieldCatName">ชื่อ</span> <span class="text-red-500">*</span></label>
             <input id="cat-name" class="field" required>
           </div>
           <div>
-            <label class="label">Type</label>
+            <label class="label" data-i18n="fieldCatType">ประเภท</label>
             <select id="cat-type" class="field">
               <option value="Department">Department</option>
               <option value="Subject Group">Subject Group</option>
@@ -28,20 +30,29 @@
             </select>
           </div>
           <div>
-            <label class="label">Description</label>
+            <label class="label" data-i18n="fieldCatDesc">คำอธิบาย</label>
             <textarea id="cat-desc" rows="2" class="field"></textarea>
           </div>
-          <button type="submit" class="btn btn-primary w-full"><i class="fa-solid fa-plus"></i> Add</button>
+          <button type="submit" class="btn btn-primary w-full">
+            <i class="fa-solid fa-plus"></i> <span data-i18n="btnAdd">เพิ่ม</span>
+          </button>
         </form>
       </div>
 
       <!-- List -->
       <div class="ui-card shadow-card p-5 lg:col-span-2">
-        <h3 class="font-semibold mb-4"><i class="fa-solid fa-tags text-brand-500 mr-2"></i>Existing Categories</h3>
+        <h3 class="font-semibold mb-4">
+          <i class="fa-solid fa-tags text-brand-500 mr-2"></i><span data-i18n="existingCatTitle">หมวดหมู่ที่มีอยู่</span>
+        </h3>
         <div class="overflow-x-auto">
           <table class="data-table">
             <thead>
-              <tr><th>Name</th><th>Type</th><th>Description</th><th class="text-right">Actions</th></tr>
+              <tr>
+                <th data-i18n="fieldCatName">ชื่อ</th>
+                <th data-i18n="fieldCatType">ประเภท</th>
+                <th data-i18n="fieldCatDesc">คำอธิบาย</th>
+                <th class="text-right" data-i18n="colActions">จัดการ</th>
+              </tr>
             </thead>
             <tbody id="cat-tbody"></tbody>
           </table>

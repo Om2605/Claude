@@ -16,7 +16,7 @@
 /** Global configuration object. Accessed everywhere as CONFIG. */
 var CONFIG = {
   /** Human-friendly name shown in the header / browser tab. */
-  APP_NAME: 'Iqra Muslim School Digital Library',
+  APP_NAME: 'Iqra Muslim School Teaching Resource Hub',
   SCHOOL_NAME: 'Iqra Muslim School',
 
   /* ----------------------------- Spreadsheet ----------------------------- */

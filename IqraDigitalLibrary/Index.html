@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="th" class="light">
 <head>
   <base target="_top">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iqra Muslim School Digital Library</title>
+  <title>คลังสื่อการสอน โรงเรียนอิกเราะสามัญศึกษา</title>
 
   <!-- ============================ External CDNs ============================ -->
   <!-- Tailwind CSS (utility-first UI framework) -->
@@ -34,30 +34,31 @@
                   border-r border-slate-200 dark:border-slate-700 flex flex-col
                   -translate-x-full lg:translate-x-0 transition-transform duration-200">
 
-      <!-- Brand -->
-      <div class="flex items-center gap-3 px-5 h-16 border-b border-slate-200 dark:border-slate-700">
-        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md">
-          <i class="fa-solid fa-book-open-reader text-lg"></i>
-        </div>
-        <div class="leading-tight">
-          <p class="font-bold text-blue-700 dark:text-blue-300">Iqra Library</p>
-          <p class="text-xs text-slate-400">Digital Repository</p>
+      <!-- Brand: school logo + name -->
+      <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-700 min-h-[4.5rem]">
+        <img src="https://img2.pic.in.th/IMG_98426b7507513c51ba19.png"
+             alt="Iqra Muslim School Logo"
+             class="w-12 h-12 object-contain rounded-lg flex-shrink-0"
+             onerror="this.style.display='none'">
+        <div class="leading-tight min-w-0">
+          <p class="font-bold text-blue-700 dark:text-blue-300 text-sm leading-snug" data-i18n="sidebarShort">คลังสื่อ</p>
+          <p class="text-xs text-slate-400 leading-snug" data-i18n="sidebarSub">คลังสื่อการสอน</p>
         </div>
       </div>
 
       <!-- Navigation -->
       <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1" id="nav-menu">
-        <a href="#dashboard"   class="nav-link" data-page="dashboard"><i class="fa-solid fa-gauge-high w-5"></i><span>Dashboard</span></a>
-        <a href="#repository"  class="nav-link" data-page="repository"><i class="fa-solid fa-photo-film w-5"></i><span>All Media</span></a>
-        <a href="#upload"      class="nav-link" data-page="upload"><i class="fa-solid fa-cloud-arrow-up w-5"></i><span>Add New Media</span></a>
-        <a href="#categories"  class="nav-link" data-page="categories"><i class="fa-solid fa-tags w-5"></i><span>Categories</span></a>
-        <a href="#reports"     class="nav-link" data-page="reports"><i class="fa-solid fa-chart-pie w-5"></i><span>Reports</span></a>
-        <a href="#settings"    class="nav-link" data-page="settings"><i class="fa-solid fa-gear w-5"></i><span>Settings</span></a>
+        <a href="#dashboard"   class="nav-link" data-page="dashboard"><i class="fa-solid fa-gauge-high w-5"></i><span data-i18n="navDashboard">แดชบอร์ด</span></a>
+        <a href="#repository"  class="nav-link" data-page="repository"><i class="fa-solid fa-photo-film w-5"></i><span data-i18n="navAllMedia">สื่อทั้งหมด</span></a>
+        <a href="#upload"      class="nav-link" data-page="upload"><i class="fa-solid fa-cloud-arrow-up w-5"></i><span data-i18n="navAddMedia">เพิ่มสื่อใหม่</span></a>
+        <a href="#categories"  class="nav-link" data-page="categories"><i class="fa-solid fa-tags w-5"></i><span data-i18n="navCategories">หมวดหมู่</span></a>
+        <a href="#reports"     class="nav-link" data-page="reports"><i class="fa-solid fa-chart-pie w-5"></i><span data-i18n="navReports">รายงาน</span></a>
+        <a href="#settings"    class="nav-link" data-page="settings"><i class="fa-solid fa-gear w-5"></i><span data-i18n="navSettings">ตั้งค่า</span></a>
       </nav>
 
       <!-- Sidebar footer -->
-      <div class="p-4 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-400">
-        <p>&copy; <span id="year"></span> Iqra Muslim School</p>
+      <div class="p-4 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-400 text-center">
+        <p data-i18n="footerText">© 2026 โรงเรียนอิกเราะสามัญศึกษา</p>
       </div>
     </aside>
 
@@ -76,14 +77,23 @@
             <i class="fa-solid fa-bars"></i>
           </button>
           <div>
-            <h1 class="font-bold text-base lg:text-lg text-slate-800 dark:text-white">
-              Iqra Muslim School
+            <h1 class="font-bold text-base lg:text-lg text-slate-800 dark:text-white leading-tight">
+              <span data-i18n="schoolName">โรงเรียนอิกเราะสามัญศึกษา</span>
             </h1>
-            <p class="text-xs text-slate-400 hidden sm:block">Digital Library System</p>
+            <p class="text-xs text-slate-400 hidden sm:block" data-i18n="headerSub">คลังสื่อการสอน</p>
           </div>
         </div>
 
-        <div class="flex items-center gap-2 lg:gap-3">
+        <div class="flex items-center gap-1 lg:gap-2">
+          <!-- Language toggle: TH / EN pill -->
+          <button id="lang-toggle" title="Switch language / เปลี่ยนภาษา"
+                  class="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-600
+                         text-xs font-bold text-slate-600 dark:text-slate-200
+                         hover:bg-brand-50 dark:hover:bg-slate-700 transition flex items-center gap-1">
+            <i class="fa-solid fa-language text-sm"></i>
+            <span id="lang-label">TH</span>
+          </button>
+
           <!-- Dark mode toggle -->
           <button id="theme-toggle" title="Toggle dark mode"
                   class="w-10 h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700
@@ -93,7 +103,7 @@
           </button>
 
           <!-- User chip -->
-          <div class="flex items-center gap-2 pl-2 lg:pl-3 border-l border-slate-200 dark:border-slate-700">
+          <div class="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700">
             <div class="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700
                         dark:text-blue-200 flex items-center justify-center font-semibold"
                  id="user-avatar">?</div>
@@ -111,11 +121,16 @@
           <i class="fa-solid fa-spinner fa-spin text-3xl"></i>
         </div>
       </main>
+
+      <!-- Site-wide footer -->
+      <footer class="border-t border-slate-200 dark:border-slate-700 py-4 px-6 text-center text-xs text-slate-400">
+        <p class="font-medium">โรงเรียนอิกเราะสามัญศึกษา &nbsp;·&nbsp; Iqra Muslim School</p>
+        <p>© <span id="year"></span> คลังสื่อการสอน &nbsp;·&nbsp; Teaching Resource Hub</p>
+      </footer>
     </div>
   </div>
 
   <!-- ===================== Page templates (hidden) ===================== -->
-  <!-- Each partial provides a <template> the router clones into #app-content. -->
   <?!= include('DashboardPage'); ?>
   <?!= include('RepositoryPage'); ?>
   <?!= include('UploadPage'); ?>

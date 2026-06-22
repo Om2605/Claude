@@ -6,50 +6,70 @@
 <template id="page-settings">
   <section class="max-w-3xl mx-auto space-y-6">
     <div>
-      <h2 class="text-2xl font-bold">System Settings</h2>
-      <p class="text-slate-400 text-sm">Preferences and data tools</p>
+      <h2 class="text-2xl font-bold" data-i18n="pageSettingsTitle">การตั้งค่าระบบ</h2>
+      <p class="text-slate-400 text-sm" data-i18n="pageSettingsSub">การตั้งค่าและเครื่องมือข้อมูล</p>
     </div>
 
     <!-- Account -->
     <div class="ui-card shadow-card p-5">
-      <h3 class="font-semibold mb-4"><i class="fa-solid fa-user text-brand-500 mr-2"></i>Account</h3>
+      <h3 class="font-semibold mb-4">
+        <i class="fa-solid fa-user text-brand-500 mr-2"></i><span data-i18n="settingAccount">บัญชีผู้ใช้</span>
+      </h3>
       <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        <div><dt class="text-slate-400">Signed in as</dt><dd id="set-email" class="font-medium">—</dd></div>
-        <div><dt class="text-slate-400">Role</dt><dd id="set-role" class="font-medium">—</dd></div>
+        <div>
+          <dt class="text-slate-400" data-i18n="settingSignedAs">เข้าสู่ระบบในชื่อ</dt>
+          <dd id="set-email" class="font-medium">—</dd>
+        </div>
+        <div>
+          <dt class="text-slate-400" data-i18n="settingRole">บทบาท</dt>
+          <dd id="set-role" class="font-medium">—</dd>
+        </div>
       </dl>
     </div>
 
     <!-- Appearance -->
     <div class="ui-card shadow-card p-5">
-      <h3 class="font-semibold mb-4"><i class="fa-solid fa-palette text-brand-500 mr-2"></i>Appearance</h3>
+      <h3 class="font-semibold mb-4">
+        <i class="fa-solid fa-palette text-brand-500 mr-2"></i><span data-i18n="settingAppearance">ธีมและรูปแบบ</span>
+      </h3>
       <div class="flex items-center justify-between">
         <div>
-          <p class="font-medium">Dark Mode</p>
-          <p class="text-xs text-slate-400">Switch between light and dark themes</p>
+          <p class="font-medium" data-i18n="settingDarkMode">โหมดมืด</p>
+          <p class="text-xs text-slate-400" data-i18n="settingDarkModeDesc">สลับระหว่างธีมสว่างและมืด</p>
         </div>
-        <button id="set-theme" class="btn btn-ghost"><i class="fa-solid fa-circle-half-stroke"></i> Toggle</button>
+        <button id="set-theme" class="btn btn-ghost">
+          <i class="fa-solid fa-circle-half-stroke"></i> <span data-i18n="settingToggle">สลับ</span>
+        </button>
       </div>
     </div>
 
     <!-- Data tools -->
     <div class="ui-card shadow-card p-5">
-      <h3 class="font-semibold mb-4"><i class="fa-solid fa-database text-brand-500 mr-2"></i>Data Tools</h3>
+      <h3 class="font-semibold mb-4">
+        <i class="fa-solid fa-database text-brand-500 mr-2"></i><span data-i18n="settingDataTools">เครื่องมือข้อมูล</span>
+      </h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <button id="set-export" class="btn btn-ghost justify-start"><i class="fa-solid fa-file-csv"></i> Export all media (CSV)</button>
+        <button id="set-export" class="btn btn-ghost justify-start">
+          <i class="fa-solid fa-file-csv"></i> <span data-i18n="settingExportAll">ส่งออกข้อมูลทั้งหมด (CSV)</span>
+        </button>
         <label class="btn btn-ghost justify-start cursor-pointer">
-          <i class="fa-solid fa-file-import"></i> Import media (CSV)
+          <i class="fa-solid fa-file-import"></i> <span data-i18n="settingImport">นำเข้าข้อมูล (CSV)</span>
           <input type="file" id="set-import" accept=".csv" class="hidden">
         </label>
       </div>
-      <p class="text-xs text-slate-400 mt-2">Import expects the same column headers as the export file.</p>
+      <p class="text-xs text-slate-400 mt-2" data-i18n="settingImportNote">ไฟล์นำเข้าต้องมีหัวคอลัมน์เดียวกันกับไฟล์ส่งออก</p>
     </div>
 
     <!-- Admin / security -->
     <div class="ui-card shadow-card p-5" id="admin-panel">
-      <h3 class="font-semibold mb-4"><i class="fa-solid fa-shield-halved text-brand-500 mr-2"></i>Security &amp; Access</h3>
+      <h3 class="font-semibold mb-4">
+        <i class="fa-solid fa-shield-halved text-brand-500 mr-2"></i><span data-i18n="settingSecurity">ความปลอดภัยและการเข้าถึง</span>
+      </h3>
       <ul class="text-sm space-y-2 text-slate-500 dark:text-slate-300">
         <li><i class="fa-solid fa-check text-green-500 mr-2"></i>Authentication via Google account (handled by deployment settings)</li>
-        <li id="set-domain-line"><i class="fa-solid fa-globe text-brand-500 mr-2"></i>Domain restriction: <span id="set-domain" class="font-medium">—</span></li>
+        <li id="set-domain-line">
+          <i class="fa-solid fa-globe text-brand-500 mr-2"></i><span data-i18n="settingDomainLine">การจำกัดโดเมน:</span> <span id="set-domain" class="font-medium">—</span>
+        </li>
         <li><i class="fa-solid fa-file-shield text-brand-500 mr-2"></i>Upload extension whitelist enforced server-side</li>
         <li><i class="fa-solid fa-lock text-brand-500 mr-2"></i>Role-based permissions on every write/delete</li>
       </ul>

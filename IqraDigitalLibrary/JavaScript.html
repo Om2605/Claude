@@ -1,34 +1,481 @@
 <!--
   JavaScript.html
   ---------------------------------------------------------------------------
-  All client-side logic for the SPA, organised into clear sections:
+  All client-side logic for the SPA:
 
-    1.  Server bridge      - promisified google.script.run + toasts
-    2.  App state & boot    - bootstrap data, theme, sidebar, router wiring
-    3.  Router              - hash-based navigation, page mounting
+    0.  i18n              - TRANSLATIONS, t(), initLang(), setLang(), applyI18n()
+    1.  Server bridge     - promisified google.script.run + toasts
+    2.  App state & boot  - bootstrap data, theme, sidebar, router wiring
+    3.  Router            - hash-based navigation, page mounting
     4.  Dashboard page
-    5.  Repository page     - filters, cards/table, pagination, CRUD actions
-    6.  Upload page         - drag&drop, base64, progress, save
+    5.  Repository page   - filters, cards/table, pagination, CRUD actions
+    6.  Upload page       - drag&drop, base64, progress, save
     7.  Categories page
     8.  Reports page
     9.  Settings page
-    10. Shared helpers      - formatting, icons, file download, detail modal
+    10. Shared helpers    - formatting, icons, file download, detail modal
 
-  All server access goes through the `api` object so error handling and the
-  loading UX are consistent everywhere.
+  All server access goes through the `api` object. All user-visible strings go
+  through `t(key)` so Thai/English switch correctly at runtime.
   ---------------------------------------------------------------------------
 -->
 <script>
 /* ===========================================================================
-   1. SERVER BRIDGE
+   0. i18n — TRANSLATIONS, helpers, language toggle
    =========================================================================== */
 
 /**
- * Wraps a google.script.run call in a Promise so we can use async/await.
- * @param {string} fn Server function name.
- * @param {...*} args Arguments.
- * @return {Promise<*>}
+ * Flat key/value translation maps for every user-visible string.
+ * Default language: 'th' (school is in Thailand).
+ * Add keys to BOTH maps when extending.
  */
+var TRANSLATIONS = {
+  th: {
+    /* App branding */
+    appTitle:            'คลังสื่อการสอน โรงเรียนอิกเราะสามัญศึกษา',
+    schoolName:          'โรงเรียนอิกเราะสามัญศึกษา',
+    sidebarShort:        'คลังสื่อ',
+    sidebarSub:          'คลังสื่อการสอน',
+    headerSub:           'คลังสื่อการสอน',
+    footerText:          '© 2026 โรงเรียนอิกเราะสามัญศึกษา',
+
+    /* Navigation */
+    navDashboard:        'แดชบอร์ด',
+    navAllMedia:         'สื่อทั้งหมด',
+    navAddMedia:         'เพิ่มสื่อใหม่',
+    navCategories:       'หมวดหมู่',
+    navReports:          'รายงาน',
+    navSettings:         'ตั้งค่า',
+
+    /* Dashboard */
+    pageDashboardTitle:  'แดชบอร์ด',
+    pageDashboardSub:    'ภาพรวมคลังสื่อการสอนของโรงเรียน',
+    totalMedia:          'สื่อทั้งหมด',
+    totalViews:          'ยอดการดู',
+    totalDownloads:      'ยอดดาวน์โหลด',
+    departments:         'แผนก',
+    mediaByType:         'สื่อตามประเภท',
+    uploadsTrend:        'การอัปโหลด (6 เดือนล่าสุด)',
+    recentUploads:       'อัปโหลดล่าสุด',
+    mostViewed:          'ดูมากที่สุด',
+    noUploadsYet:        'ยังไม่มีการอัปโหลด',
+    noDataYet:           'ยังไม่มีข้อมูล',
+
+    /* Repository */
+    pageRepoTitle:       'สื่อทั้งหมด',
+    pageRepoSub:         'ค้นหาและจัดการสื่อการสอน',
+    labelSearch:         'ค้นหา',
+    placeholderSearch:   'ชื่อ คำอธิบาย ผู้สร้าง…',
+    labelType:           'ประเภท',
+    labelDept:           'แผนก',
+    labelGrade:          'ระดับชั้น',
+    btnReset:            'รีเซ็ต',
+    btnExportCsv:        'ส่งออก CSV',
+    btnAdd:              'เพิ่ม',
+    noMediaFound:        'ไม่พบสื่อ',
+    noMediaSub:          'ลองเปลี่ยนตัวกรองหรือเพิ่มสื่อใหม่',
+    optAll:              'ทั้งหมด',
+    colTitle:            'ชื่อ',
+    colType:             'ประเภท',
+    colDept:             'แผนก',
+    colGrade:            'ระดับชั้น',
+    colViews:            'ยอดดู',
+    colStatus:           'สถานะ',
+    colActions:          'จัดการ',
+    btnView:             'ดู',
+
+    /* Upload */
+    pageUploadTitle:     'เพิ่มสื่อใหม่',
+    pageUploadSub:       'อัปโหลดไฟล์หรือเชื่อมโยงสื่อจากภายนอก',
+    btnUploadFile:       'อัปโหลดไฟล์',
+    btnExternalLink:     'ลิงก์ภายนอก',
+    dzText:              'ลากและวางไฟล์ที่นี่ หรือ',
+    dzBrowse:            'เลือกไฟล์',
+    fieldLabel:          'ไฟล์',
+    fieldExtUrl:         'URL ภายนอก',
+    fieldTitle:          'ชื่อสื่อ',
+    fieldType:           'ประเภทสื่อ',
+    fieldDept:           'แผนก / กลุ่มสาระ',
+    fieldGrade:          'ระดับชั้น',
+    fieldStatus:         'สถานะการเผยแพร่',
+    fieldCreator:        'ชื่อผู้สร้าง',
+    fieldCreatorPh:      'ค่าเริ่มต้นเป็นบัญชีของคุณ',
+    fieldDesc:           'คำอธิบาย',
+    fieldDescPh:         'สรุปสั้นๆ ของเนื้อหา…',
+    placeholderExtUrl:   'https://… (YouTube, เว็บไซต์ ฯลฯ)',
+    btnCancel:           'ยกเลิก',
+    btnSave:             'บันทึกสื่อ',
+
+    /* Categories */
+    pageCatTitle:        'จัดการหมวดหมู่',
+    pageCatSub:          'แผนกและกลุ่มสาระสำหรับจัดหมวดหมู่สื่อ',
+    addCategoryTitle:    'เพิ่มหมวดหมู่',
+    existingCatTitle:    'หมวดหมู่ที่มีอยู่',
+    fieldCatName:        'ชื่อ',
+    fieldCatType:        'ประเภท',
+    fieldCatDesc:        'คำอธิบาย',
+
+    /* Reports */
+    pageReportsTitle:    'รายงานสถิติ',
+    pageReportsSub:      'ข้อมูลเชิงลึกและสรุปผล',
+    btnDownloadPdf:      'ดาวน์โหลด PDF',
+    btnExportExcel:      'ส่งออก Excel',
+    chartByDept:         'สื่อตามแผนก',
+    chartByStatus:       'สื่อตามสถานะ',
+    chartMonthlyTrend:   'แนวโน้มการอัปโหลดรายเดือน',
+
+    /* Settings */
+    pageSettingsTitle:   'การตั้งค่าระบบ',
+    pageSettingsSub:     'การตั้งค่าและเครื่องมือข้อมูล',
+    settingAccount:      'บัญชีผู้ใช้',
+    settingSignedAs:     'เข้าสู่ระบบในชื่อ',
+    settingRole:         'บทบาท',
+    settingAppearance:   'ธีมและรูปแบบ',
+    settingDarkMode:     'โหมดมืด',
+    settingDarkModeDesc: 'สลับระหว่างธีมสว่างและมืด',
+    settingToggle:       'สลับ',
+    settingDataTools:    'เครื่องมือข้อมูล',
+    settingExportAll:    'ส่งออกข้อมูลทั้งหมด (CSV)',
+    settingImport:       'นำเข้าข้อมูล (CSV)',
+    settingImportNote:   'ไฟล์นำเข้าต้องมีหัวคอลัมน์เดียวกันกับไฟล์ส่งออก',
+    settingSecurity:     'ความปลอดภัยและการเข้าถึง',
+    settingDomainOn:     'เปิดใช้งาน',
+    settingDomainOff:    'ปิดใช้งาน',
+    settingDomainLine:   'การจำกัดโดเมน:',
+
+    /* Status / type labels */
+    statusPublished:     'เผยแพร่',
+    statusDraft:         'ฉบับร่าง',
+    statusArchived:      'เก็บถาวร',
+    typeDocument:        'เอกสาร',
+    typeImage:           'รูปภาพ',
+    typeVideo:           'วิดีโอ',
+    typeAudio:           'เสียง',
+    typePDF:             'PDF',
+    typeLink:            'ลิงก์',
+
+    /* Modals & confirmations */
+    deleteConfirmTitle:  'ลบสื่อนี้?',
+    deleteConfirmHtml:   'คุณกำลังจะลบ <b>{title}</b><br>ระบบจะย้ายไฟล์ Drive ไปยังถังขยะและไม่สามารถกู้คืนได้',
+    deleteCatTitle:      'ลบหมวดหมู่?',
+    deleteCatText:       'สื่อที่มีอยู่จะยังคงป้ายแผนกเดิม',
+    editMediaTitle:      'แก้ไขสื่อ',
+    btnDelete:           'ลบ',
+    btnSaveEdit:         'บันทึก',
+    labelTitleEdit:      'ชื่อ',
+
+    /* Toasts / messages */
+    mediaDeletedMsg:     'ลบสื่อแล้ว',
+    mediaUpdatedMsg:     'อัปเดตสื่อแล้ว',
+    categoryAddedMsg:    'เพิ่มหมวดหมู่แล้ว',
+    categoryDeletedMsg:  'ลบหมวดหมู่แล้ว',
+    mediaSavedTitle:     'บันทึกสื่อแล้ว!',
+    exportReadyMsg:      'พร้อมส่งออก',
+    reportDownloadedMsg: 'ดาวน์โหลดรายงานแล้ว',
+    addedToFavorites:    'เพิ่มในรายการโปรดแล้ว',
+    removedFromFavorites:'ลบออกจากรายการโปรดแล้ว',
+    importCompleteTitle: 'นำเข้าข้อมูลเสร็จสิ้น',
+    importedLabel:       'นำเข้า:',
+    skippedLabel:        'ข้าม:',
+    permissionError:     'คุณไม่มีสิทธิ์เข้าถึงหน้านี้',
+    errSomethingWrong:   'เกิดข้อผิดพลาด',
+
+    /* Validation */
+    errTitleRequired:    'กรุณาใส่ชื่อสื่อ',
+    errTypeRequired:     'กรุณาเลือกประเภทสื่อ',
+    errDeptRequired:     'กรุณาเลือกแผนก',
+    errGradeRequired:    'กรุณาเลือกระดับชั้น',
+    errNameRequired:     'กรุณาใส่ชื่อ',
+    errChooseFile:       'กรุณาเลือกไฟล์',
+    errEnterUrl:         'กรุณาใส่ URL',
+    errFileTooLarge:     'ไฟล์มีขนาดใหญ่เกินไป',
+    errCouldNotRead:     'ไม่สามารถอ่านไฟล์ได้',
+
+    /* Progress */
+    progressReading:     'กำลังอ่านไฟล์…',
+    progressReadingPct:  'กำลังอ่าน…',
+    progressReady:       'พร้อมอัปโหลด',
+    progressUploading:   'กำลังอัปโหลดไปยัง Drive…',
+    progressSaving:      'กำลังบันทึก…',
+    progressDone:        'เสร็จสิ้น',
+    progressDefault:     'พร้อม',
+    loadingEllipsis:     'กำลังโหลด…',
+
+    /* Detail modal */
+    detailDept:          'แผนก',
+    detailGrade:         'ระดับชั้น',
+    detailCreator:       'ผู้สร้าง',
+    detailUploaded:      'วันที่อัปโหลด',
+    detailViews:         'ครั้ง',
+    btnOpen:             'เปิด',
+    btnDownload:         'ดาวน์โหลด',
+    btnFavorite:         'รายการโปรด',
+    noDesc:              'ไม่มีคำอธิบาย',
+    scanToShare:         'สแกนเพื่อแชร์',
+    commentsTitle:       'ความคิดเห็นและรีวิว',
+    noCommentsYet:       'ยังไม่มีความคิดเห็น',
+    commentPlaceholder:  'เพิ่มความคิดเห็น…',
+    errCommentEmpty:     'กรุณาใส่ความคิดเห็น',
+
+    /* Categories table */
+    noCategoriesYet:     'ยังไม่มีหมวดหมู่',
+    loadingCats:         'กำลังโหลด…'
+  },
+
+  en: {
+    /* App branding */
+    appTitle:            'Iqra Muslim School Teaching Resource Hub',
+    schoolName:          'Iqra Muslim School',
+    sidebarShort:        'Iqra Library',
+    sidebarSub:          'Teaching Resource Hub',
+    headerSub:           'Teaching Resource Hub',
+    footerText:          '© 2026 Iqra Muslim School',
+
+    /* Navigation */
+    navDashboard:        'Dashboard',
+    navAllMedia:         'All Media',
+    navAddMedia:         'Add New Media',
+    navCategories:       'Categories',
+    navReports:          'Reports',
+    navSettings:         'Settings',
+
+    /* Dashboard */
+    pageDashboardTitle:  'Dashboard',
+    pageDashboardSub:    'Overview of your school\'s digital media library',
+    totalMedia:          'Total Media',
+    totalViews:          'Total Views',
+    totalDownloads:      'Total Downloads',
+    departments:         'Departments',
+    mediaByType:         'Media by Type',
+    uploadsTrend:        'Uploads (last 6 months)',
+    recentUploads:       'Recent Uploads',
+    mostViewed:          'Most Viewed',
+    noUploadsYet:        'No uploads yet',
+    noDataYet:           'No data yet',
+
+    /* Repository */
+    pageRepoTitle:       'All Media',
+    pageRepoSub:         'Browse, search and manage the repository',
+    labelSearch:         'Search',
+    placeholderSearch:   'Title, description, creator…',
+    labelType:           'Type',
+    labelDept:           'Department',
+    labelGrade:          'Grade',
+    btnReset:            'Reset',
+    btnExportCsv:        'Export CSV',
+    btnAdd:              'Add',
+    noMediaFound:        'No media found',
+    noMediaSub:          'Try adjusting your filters or add new media.',
+    optAll:              'All',
+    colTitle:            'Title',
+    colType:             'Type',
+    colDept:             'Department',
+    colGrade:            'Grade',
+    colViews:            'Views',
+    colStatus:           'Status',
+    colActions:          'Actions',
+    btnView:             'View',
+
+    /* Upload */
+    pageUploadTitle:     'Add New Media',
+    pageUploadSub:       'Upload a file to Google Drive or link external media',
+    btnUploadFile:       'Upload File',
+    btnExternalLink:     'External Link',
+    dzText:              'Drag & drop a file here, or',
+    dzBrowse:            'browse',
+    fieldLabel:          'File',
+    fieldExtUrl:         'External URL',
+    fieldTitle:          'Media Title',
+    fieldType:           'Media Type',
+    fieldDept:           'Department / Subject Group',
+    fieldGrade:          'Grade Level',
+    fieldStatus:         'Publication Status',
+    fieldCreator:        'Creator Name',
+    fieldCreatorPh:      'Defaults to your account',
+    fieldDesc:           'Description',
+    fieldDescPh:         'Short summary of the material…',
+    placeholderExtUrl:   'https://… (YouTube, web page, shared drive, etc.)',
+    btnCancel:           'Cancel',
+    btnSave:             'Save Media',
+
+    /* Categories */
+    pageCatTitle:        'Category Management',
+    pageCatSub:          'Departments and subject groups used to organise media',
+    addCategoryTitle:    'Add Category',
+    existingCatTitle:    'Existing Categories',
+    fieldCatName:        'Name',
+    fieldCatType:        'Type',
+    fieldCatDesc:        'Description',
+
+    /* Reports */
+    pageReportsTitle:    'Statistical Reports',
+    pageReportsSub:      'Insights and exportable summaries',
+    btnDownloadPdf:      'Download PDF',
+    btnExportExcel:      'Export Excel',
+    chartByDept:         'Media by Department',
+    chartByStatus:       'Media by Status',
+    chartMonthlyTrend:   'Monthly Upload Trend',
+
+    /* Settings */
+    pageSettingsTitle:   'System Settings',
+    pageSettingsSub:     'Preferences and data tools',
+    settingAccount:      'Account',
+    settingSignedAs:     'Signed in as',
+    settingRole:         'Role',
+    settingAppearance:   'Appearance',
+    settingDarkMode:     'Dark Mode',
+    settingDarkModeDesc: 'Switch between light and dark themes',
+    settingToggle:       'Toggle',
+    settingDataTools:    'Data Tools',
+    settingExportAll:    'Export all media (CSV)',
+    settingImport:       'Import media (CSV)',
+    settingImportNote:   'Import expects the same column headers as the export file.',
+    settingSecurity:     'Security & Access',
+    settingDomainOn:     'On',
+    settingDomainOff:    'Off',
+    settingDomainLine:   'Domain restriction:',
+
+    /* Status / type labels */
+    statusPublished:     'Published',
+    statusDraft:         'Draft',
+    statusArchived:      'Archived',
+    typeDocument:        'Document',
+    typeImage:           'Image',
+    typeVideo:           'Video',
+    typeAudio:           'Audio',
+    typePDF:             'PDF',
+    typeLink:            'Link',
+
+    /* Modals & confirmations */
+    deleteConfirmTitle:  'Delete this media?',
+    deleteConfirmHtml:   'You are about to delete <b>{title}</b>.<br>This also trashes the Drive file and cannot be undone.',
+    deleteCatTitle:      'Delete category?',
+    deleteCatText:       'Existing media keep their department label.',
+    editMediaTitle:      'Edit Media',
+    btnDelete:           'Delete',
+    btnSaveEdit:         'Save',
+    labelTitleEdit:      'Title',
+
+    /* Toasts / messages */
+    mediaDeletedMsg:     'Media deleted',
+    mediaUpdatedMsg:     'Media updated',
+    categoryAddedMsg:    'Category added',
+    categoryDeletedMsg:  'Category deleted',
+    mediaSavedTitle:     'Media saved!',
+    exportReadyMsg:      'Export ready',
+    reportDownloadedMsg: 'Report downloaded',
+    addedToFavorites:    'Added to favorites',
+    removedFromFavorites:'Removed from favorites',
+    importCompleteTitle: 'Import complete',
+    importedLabel:       'Imported:',
+    skippedLabel:        'Skipped:',
+    permissionError:     'You do not have permission to access that page.',
+    errSomethingWrong:   'Something went wrong',
+
+    /* Validation */
+    errTitleRequired:    'Media title is required',
+    errTypeRequired:     'Media type is required',
+    errDeptRequired:     'Department is required',
+    errGradeRequired:    'Grade level is required',
+    errNameRequired:     'Name is required',
+    errChooseFile:       'Please choose a file',
+    errEnterUrl:         'Please enter a URL',
+    errFileTooLarge:     'File is too large',
+    errCouldNotRead:     'Could not read file',
+
+    /* Progress */
+    progressReading:     'Reading file…',
+    progressReadingPct:  'Reading…',
+    progressReady:       'Ready to upload',
+    progressUploading:   'Uploading to Drive…',
+    progressSaving:      'Saving record…',
+    progressDone:        'Done',
+    progressDefault:     'Ready',
+    loadingEllipsis:     'Loading…',
+
+    /* Detail modal */
+    detailDept:          'Department',
+    detailGrade:         'Grade',
+    detailCreator:       'Creator',
+    detailUploaded:      'Uploaded',
+    detailViews:         'views',
+    btnOpen:             'Open',
+    btnDownload:         'Download',
+    btnFavorite:         'Favorite',
+    noDesc:              'No description.',
+    scanToShare:         'Scan to share',
+    commentsTitle:       'Comments & Reviews',
+    noCommentsYet:       'No comments yet.',
+    commentPlaceholder:  'Add a comment…',
+    errCommentEmpty:     'Comment cannot be empty',
+
+    /* Categories table */
+    noCategoriesYet:     'No categories yet',
+    loadingCats:         'Loading…'
+  }
+};
+
+/** Active language code — set by initLang() on boot. */
+var LANG = 'th';
+
+/**
+ * Reads localStorage and applies the saved language, defaulting to 'th'.
+ * Must be called before any rendering.
+ */
+function initLang() {
+  var saved = localStorage.getItem('iqra-lang');
+  LANG = (saved === 'en' || saved === 'th') ? saved : 'th';
+  document.documentElement.lang = LANG;
+  var label = document.getElementById('lang-label');
+  if (label) label.textContent = LANG.toUpperCase();
+}
+
+/**
+ * Switches to the given language, persists the choice, re-applies DOM strings
+ * and re-renders the current page so dynamic content updates too.
+ * @param {string} lang 'th' | 'en'
+ */
+function setLang(lang) {
+  LANG = lang;
+  localStorage.setItem('iqra-lang', lang);
+  document.documentElement.lang = lang;
+  document.title = t('appTitle');
+  var label = document.getElementById('lang-label');
+  if (label) label.textContent = lang.toUpperCase();
+  applyI18n();
+  route();  // re-render current page with new language
+}
+
+/**
+ * Returns the translation for a key in the active language.
+ * Falls back to English, then the key itself.
+ * @param {string} key Translation key.
+ * @return {string}
+ */
+function t(key) {
+  return (TRANSLATIONS[LANG] && TRANSLATIONS[LANG][key] != null)
+    ? TRANSLATIONS[LANG][key]
+    : ((TRANSLATIONS.en && TRANSLATIONS.en[key] != null) ? TRANSLATIONS.en[key] : key);
+}
+
+/**
+ * Walks the document for [data-i18n] and [data-i18n-placeholder] attributes
+ * and sets textContent / placeholder from the translation map.
+ * Call after page load and after every language switch.
+ */
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(function (el) {
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+    el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+  });
+}
+
+/* ===========================================================================
+   1. SERVER BRIDGE
+   =========================================================================== */
+
 function call(fn) {
   var args = Array.prototype.slice.call(arguments, 1);
   return new Promise(function (resolve, reject) {
@@ -39,7 +486,6 @@ function call(fn) {
   });
 }
 
-// Convenience wrappers mapping 1:1 onto the .gs server functions.
 var api = {
   bootstrap:        function () { return call('getBootstrapData'); },
   dashboard:        function () { return call('getDashboardData'); },
@@ -57,7 +503,7 @@ var api = {
   toggleFavorite:   function (id) { return call('toggleFavorite', id); },
   myFavorites:      function () { return call('getMyFavorites'); },
   comments:         function (id) { return call('getComments', id); },
-  addComment:       function (id, t, r) { return call('addComment', id, t, r); },
+  addComment:       function (id, tx, r) { return call('addComment', id, tx, r); },
   deleteComment:    function (id) { return call('deleteComment', id); },
   upload:           function (p) { return call('uploadFile', p); },
   exportCsv:        function () { return call('exportMediaCsv'); },
@@ -65,7 +511,6 @@ var api = {
   reportPdf:        function () { return call('generateReportPdf'); }
 };
 
-// --- SweetAlert2 toast presets ---
 var Toast = Swal.mixin({
   toast: true, position: 'top-end', showConfirmButton: false,
   timer: 2600, timerProgressBar: true
@@ -74,7 +519,7 @@ function toastOk(msg)  { Toast.fire({ icon: 'success', title: msg }); }
 function toastErr(msg) { Toast.fire({ icon: 'error',   title: msg }); }
 function showError(err) {
   var msg = (err && err.message) ? err.message : String(err);
-  Swal.fire({ icon: 'error', title: 'Something went wrong', text: msg });
+  Swal.fire({ icon: 'error', title: t('errSomethingWrong'), text: msg });
 }
 
 /* ===========================================================================
@@ -82,36 +527,33 @@ function showError(err) {
    =========================================================================== */
 
 var APP = {
-  user: null,
-  options: null,
-  settings: null,
-  favorites: [],      // media IDs favorited by the user
-  charts: {},         // live Chart.js instances keyed by canvas id
-  repo: {             // repository page state
-    page: 1, view: 'cards', filters: {}, lastResult: null
-  }
+  user: null, options: null, settings: null,
+  favorites: [],
+  charts: {},
+  repo: { page: 1, view: 'cards', filters: {}, lastResult: null }
 };
 
 document.addEventListener('DOMContentLoaded', boot);
 
 async function boot() {
   document.getElementById('year').textContent = new Date().getFullYear();
+  initLang();           // set language before anything renders
+  applyI18n();          // update static sidebar/header strings
+  document.title = t('appTitle');
   initTheme();
   wireChrome();
 
   try {
     var data = await api.bootstrap();
-    APP.user = data.user;
+    APP.user    = data.user;
     APP.options = data.options;
     APP.settings = data.settings;
     paintUserChrome();
-    // Favorites are best-effort; ignore failures (e.g. anonymous).
     api.myFavorites().then(function (f) { APP.favorites = f || []; }).catch(function () {});
   } catch (err) {
     showError(err);
   }
 
-  // Start the router (handles initial hash / server-chosen page).
   window.addEventListener('hashchange', route);
   if (!location.hash) {
     location.hash = '#' + (window.INITIAL_PAGE || 'dashboard');
@@ -120,15 +562,11 @@ async function boot() {
   }
 }
 
-/** Paints the header user chip and applies role-based visibility. */
 function paintUserChrome() {
   var u = APP.user || {};
   document.getElementById('user-email').textContent = u.email || 'Guest';
-  document.getElementById('user-role').textContent = u.role || 'Viewer';
-  document.getElementById('user-avatar').textContent =
-    (u.email ? u.email[0] : '?').toUpperCase();
-
-  // Hide editing-only nav for viewers.
+  document.getElementById('user-role').textContent  = u.role  || 'Viewer';
+  document.getElementById('user-avatar').textContent = (u.email ? u.email[0] : '?').toUpperCase();
   if (!u.canEdit) {
     ['upload', 'categories'].forEach(function (p) {
       var link = document.querySelector('.nav-link[data-page="' + p + '"]');
@@ -150,26 +588,24 @@ var PAGES = {
   settings:   { template: 'page-settings',   render: renderSettings }
 };
 
-/** Reads the hash and mounts the matching page. */
 function route() {
   var page = (location.hash || '#dashboard').slice(1).split('?')[0] || 'dashboard';
   if (!PAGES[page]) page = 'dashboard';
 
-  // Gate edit pages for viewers.
   if ((page === 'upload' || page === 'categories') && APP.user && !APP.user.canEdit) {
-    toastErr('You do not have permission to access that page.');
+    toastErr(t('permissionError'));
     location.hash = '#dashboard';
     return;
   }
 
   setActiveNav(page);
-  destroyCharts();           // free any Chart.js instances from the previous page
+  destroyCharts();
   mountTemplate(PAGES[page].template);
+  applyI18n();          // update data-i18n nodes in the freshly mounted template
   closeSidebar();
   try { PAGES[page].render(); } catch (err) { showError(err); }
 }
 
-/** Clones a <template> into the content host. */
 function mountTemplate(templateId) {
   var tpl = document.getElementById(templateId);
   var host = document.getElementById('app-content');
@@ -190,48 +626,40 @@ function setActiveNav(page) {
 async function renderDashboard() {
   var cards = document.getElementById('stat-cards');
   cards.innerHTML = skeletonCards(4);
-
   try {
     var d = await api.dashboard();
-
     cards.innerHTML = [
-      statCard('Total Media',     d.totals.media,     'fa-photo-film',   'brand'),
-      statCard('Total Views',     d.totals.views,     'fa-eye',          'brand'),
-      statCard('Total Downloads', d.totals.downloads, 'fa-download',     'accent'),
-      statCard('Departments',     d.totals.departments,'fa-tags',        'brand')
+      statCard(t('totalMedia'),     d.totals.media,      'fa-photo-film', 'brand'),
+      statCard(t('totalViews'),     d.totals.views,      'fa-eye',        'brand'),
+      statCard(t('totalDownloads'), d.totals.downloads,  'fa-download',   'accent'),
+      statCard(t('departments'),    d.totals.departments, 'fa-tags',      'brand')
     ].join('');
 
     drawDoughnut('chart-type', d.byType);
-    drawLine('chart-uploads', d.uploadsByMonth, 'Uploads');
+    drawLine('chart-uploads', d.uploadsByMonth, t('uploadsTrend'));
 
     document.getElementById('recent-list').innerHTML =
-      (d.recent.length ? d.recent.map(miniRow).join('') : emptyLi('No uploads yet'));
+      (d.recent.length ? d.recent.map(miniRow).join('') : emptyLi(t('noUploadsYet')));
     document.getElementById('top-list').innerHTML =
-      (d.topViewed.length ? d.topViewed.map(miniRow).join('') : emptyLi('No data yet'));
-  } catch (err) {
-    showError(err);
-  }
+      (d.topViewed.length ? d.topViewed.map(miniRow).join('') : emptyLi(t('noDataYet')));
+  } catch (err) { showError(err); }
 }
 
 function statCard(label, value, icon, tone) {
   var bg = tone === 'accent' ? 'bg-accent-100 text-accent-400' : 'bg-brand-100 text-brand-600';
-  return '' +
-    '<div class="ui-card shadow-card p-4 flex items-center gap-4">' +
-      '<div class="w-12 h-12 rounded-xl flex items-center justify-center ' + bg + '">' +
-        '<i class="fa-solid ' + icon + ' text-lg"></i></div>' +
-      '<div><p class="text-2xl font-bold">' + value + '</p>' +
-      '<p class="text-xs text-slate-400">' + label + '</p></div>' +
-    '</div>';
+  return '<div class="ui-card shadow-card p-4 flex items-center gap-4">' +
+    '<div class="w-12 h-12 rounded-xl flex items-center justify-center ' + bg + '">' +
+    '<i class="fa-solid ' + icon + ' text-lg"></i></div>' +
+    '<div><p class="text-2xl font-bold">' + value + '</p>' +
+    '<p class="text-xs text-slate-400">' + label + '</p></div></div>';
 }
 
 function miniRow(m) {
-  return '' +
-    '<li class="py-2 flex items-center gap-3 cursor-pointer hover:opacity-80" onclick="openDetail(\'' + m.mediaId + '\')">' +
-      '<i class="fa-solid ' + typeIcon(m.mediaType) + ' text-brand-500 w-5 text-center"></i>' +
-      '<div class="flex-1 min-w-0"><p class="text-sm font-medium truncate">' + escapeHtml(m.title) + '</p>' +
-      '<p class="text-xs text-slate-400">' + escapeHtml(m.mediaType) + ' · ' + escapeHtml(m.department || '—') + '</p></div>' +
-      '<span class="text-xs text-slate-400"><i class="fa-solid fa-eye"></i> ' + (m.viewCount || 0) + '</span>' +
-    '</li>';
+  return '<li class="py-2 flex items-center gap-3 cursor-pointer hover:opacity-80" onclick="openDetail(\'' + m.mediaId + '\')">' +
+    '<i class="fa-solid ' + typeIcon(m.mediaType) + ' text-brand-500 w-5 text-center"></i>' +
+    '<div class="flex-1 min-w-0"><p class="text-sm font-medium truncate">' + escapeHtml(m.title) + '</p>' +
+    '<p class="text-xs text-slate-400">' + typeLabel(m.mediaType) + ' · ' + escapeHtml(m.department || '—') + '</p></div>' +
+    '<span class="text-xs text-slate-400"><i class="fa-solid fa-eye"></i> ' + (m.viewCount || 0) + '</span></li>';
 }
 
 /* ===========================================================================
@@ -239,22 +667,20 @@ function miniRow(m) {
    =========================================================================== */
 
 function renderRepository() {
-  // Populate filter dropdowns.
-  fillSelect(document.getElementById('f-type'),  APP.options.mediaTypes, true);
+  fillTypeSelect(document.getElementById('f-type'), true);
   fillSelect(document.getElementById('f-dept'),  APP.options.departments, true);
   fillSelect(document.getElementById('f-grade'), APP.options.gradeLevels, true);
 
-  // Wire controls.
   var search = document.getElementById('f-search');
   search.addEventListener('input', debounce(function () { APP.repo.page = 1; loadMedia(); }, 350));
   ['f-type', 'f-dept', 'f-grade'].forEach(function (id) {
     document.getElementById(id).addEventListener('change', function () { APP.repo.page = 1; loadMedia(); });
   });
   document.getElementById('f-reset').addEventListener('click', function () {
-    search.value = ''; ['f-type', 'f-dept', 'f-grade'].forEach(function (id) { document.getElementById(id).value = ''; });
+    search.value = '';
+    ['f-type', 'f-dept', 'f-grade'].forEach(function (id) { document.getElementById(id).value = ''; });
     APP.repo.page = 1; loadMedia();
   });
-
   document.getElementById('view-cards').addEventListener('click', function () { setRepoView('cards'); });
   document.getElementById('view-table').addEventListener('click', function () { setRepoView('table'); });
   document.getElementById('btn-export').addEventListener('click', exportCsv);
@@ -265,18 +691,17 @@ function renderRepository() {
 
 function setRepoView(view) {
   APP.repo.view = view;
-  var grid = document.getElementById('media-grid');
+  var grid  = document.getElementById('media-grid');
   var table = document.getElementById('media-table-wrap');
-  var bCards = document.getElementById('view-cards');
-  var bTable = document.getElementById('view-table');
-  var on = 'bg-brand-600 text-white', off = 'bg-white dark:bg-slate-800';
-
+  var bC = document.getElementById('view-cards');
+  var bT = document.getElementById('view-table');
+  var on  = 'bg-brand-600 text-white', off = 'bg-white dark:bg-slate-800';
   if (view === 'cards') {
     grid.classList.remove('hidden'); table.classList.add('hidden');
-    bCards.className = 'px-3 py-2 text-sm ' + on; bTable.className = 'px-3 py-2 text-sm ' + off;
+    bC.className = 'px-3 py-2 text-sm ' + on; bT.className = 'px-3 py-2 text-sm ' + off;
   } else {
     grid.classList.add('hidden'); table.classList.remove('hidden');
-    bTable.className = 'px-3 py-2 text-sm ' + on; bCards.className = 'px-3 py-2 text-sm ' + off;
+    bT.className = 'px-3 py-2 text-sm ' + on; bC.className = 'px-3 py-2 text-sm ' + off;
   }
   if (APP.repo.lastResult) paintMedia(APP.repo.lastResult);
 }
@@ -286,35 +711,31 @@ async function loadMedia() {
   if (APP.repo.view === 'cards') grid.innerHTML = skeletonCards(8);
 
   var params = {
-    q: document.getElementById('f-search').value.trim(),
-    type: document.getElementById('f-type').value,
-    department: document.getElementById('f-dept').value,
-    gradeLevel: document.getElementById('f-grade').value,
-    page: APP.repo.page,
-    pageSize: APP.options.pageSize
+    q:           document.getElementById('f-search').value.trim(),
+    type:        document.getElementById('f-type').value,
+    department:  document.getElementById('f-dept').value,
+    gradeLevel:  document.getElementById('f-grade').value,
+    page:        APP.repo.page,
+    pageSize:    APP.options.pageSize
   };
   APP.repo.filters = params;
 
   try {
-    var hasFilters = params.q || params.type || params.department || params.gradeLevel;
-    var result = hasFilters ? await api.search(params) : await api.list(params);
+    var hasF = params.q || params.type || params.department || params.gradeLevel;
+    var result = hasF ? await api.search(params) : await api.list(params);
     APP.repo.lastResult = result;
     paintMedia(result);
-  } catch (err) {
-    showError(err);
-  }
+  } catch (err) { showError(err); }
 }
 
 function paintMedia(result) {
   var items = result.items || [];
-  var meta = document.getElementById('results-meta');
+  var meta  = document.getElementById('results-meta');
   var empty = document.getElementById('empty-state');
-  var grid = document.getElementById('media-grid');
-  var table = document.getElementById('media-table-wrap');
+  var grid  = document.getElementById('media-grid');
   var tbody = document.getElementById('media-tbody');
 
-  meta.textContent = result.total + ' item' + (result.total === 1 ? '' : 's') +
-    ' · page ' + result.page + ' of ' + result.totalPages;
+  meta.textContent = result.total + ' · ' + result.page + '/' + result.totalPages;
 
   if (!items.length) {
     empty.classList.remove('hidden');
@@ -338,10 +759,9 @@ function mediaCard(m) {
       'onerror="this.replaceWith(thumbFallback(\'' + m.mediaType + '\'))">'
     : thumbFallbackHtml(m.mediaType);
 
-  return '' +
-  '<div class="ui-card media-card shadow-card flex flex-col">' +
+  return '<div class="ui-card media-card shadow-card flex flex-col">' +
     '<div class="relative cursor-pointer" onclick="openDetail(\'' + m.mediaId + '\')">' + thumb +
-      '<span class="badge badge-type absolute top-2 left-2"><i class="fa-solid ' + typeIcon(m.mediaType) + '"></i>' + escapeHtml(m.mediaType) + '</span>' +
+      '<span class="badge badge-type absolute top-2 left-2"><i class="fa-solid ' + typeIcon(m.mediaType) + '"></i>' + typeLabel(m.mediaType) + '</span>' +
       '<button class="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 dark:bg-slate-900/80 flex items-center justify-center"' +
         ' onclick="event.stopPropagation();toggleFav(\'' + m.mediaId + '\',this)">' +
         '<i class="' + (fav ? 'fa-solid text-red-500' : 'fa-regular text-slate-400') + ' fa-heart"></i></button>' +
@@ -355,42 +775,36 @@ function mediaCard(m) {
         statusBadge(m.status) +
       '</div>' +
       '<div class="flex gap-2 mt-3">' +
-        '<button class="btn btn-ghost flex-1 text-xs" onclick="openDetail(\'' + m.mediaId + '\')"><i class="fa-solid fa-eye"></i> View</button>' +
+        '<button class="btn btn-ghost flex-1 text-xs" onclick="openDetail(\'' + m.mediaId + '\')"><i class="fa-solid fa-eye"></i> ' + t('btnView') + '</button>' +
         (m.driveLink ? '<button class="btn btn-primary flex-1 text-xs" onclick="downloadMedia(\'' + m.mediaId + '\')"><i class="fa-solid fa-download"></i></button>' : '') +
-        editButtons(m, 'icon') +
+        editButtons(m) +
       '</div>' +
-    '</div>' +
-  '</div>';
+    '</div></div>';
 }
 
 function mediaTableRow(m) {
-  return '' +
-  '<tr>' +
+  return '<tr>' +
     '<td><button class="text-left font-medium hover:text-brand-600" onclick="openDetail(\'' + m.mediaId + '\')">' + escapeHtml(m.title) + '</button></td>' +
-    '<td><span class="badge badge-type"><i class="fa-solid ' + typeIcon(m.mediaType) + '"></i>' + escapeHtml(m.mediaType) + '</span></td>' +
+    '<td><span class="badge badge-type"><i class="fa-solid ' + typeIcon(m.mediaType) + '"></i>' + typeLabel(m.mediaType) + '</span></td>' +
     '<td>' + escapeHtml(m.department || '—') + '</td>' +
     '<td>' + escapeHtml(m.gradeLevel || '—') + '</td>' +
     '<td>' + (m.viewCount || 0) + '</td>' +
     '<td>' + statusBadge(m.status) + '</td>' +
     '<td class="text-right whitespace-nowrap">' +
       (m.driveLink ? '<button class="btn btn-ghost text-xs" onclick="downloadMedia(\'' + m.mediaId + '\')"><i class="fa-solid fa-download"></i></button> ' : '') +
-      editButtons(m, 'icon') +
-    '</td>' +
-  '</tr>';
+      editButtons(m) +
+    '</td></tr>';
 }
 
-/** Edit/delete buttons, shown only to users who can edit. */
-function editButtons(m, style) {
+function editButtons(m) {
   if (!APP.user || !APP.user.canEdit) return '';
-  return '' +
-    '<button class="btn btn-ghost text-xs" title="Edit" onclick="editMedia(\'' + m.mediaId + '\')"><i class="fa-solid fa-pen"></i></button> ' +
+  return '<button class="btn btn-ghost text-xs" title="Edit" onclick="editMedia(\'' + m.mediaId + '\')"><i class="fa-solid fa-pen"></i></button> ' +
     '<button class="btn btn-ghost text-xs text-red-500" title="Delete" onclick="confirmDelete(\'' + m.mediaId + '\',\'' + escapeAttr(m.title) + '\')"><i class="fa-solid fa-trash"></i></button>';
 }
 
 function renderPagination(result) {
   var el = document.getElementById('pagination');
   if (result.totalPages <= 1) { el.innerHTML = ''; return; }
-
   var html = pageBtn('«', result.page > 1, result.page - 1);
   for (var p = 1; p <= result.totalPages; p++) {
     if (p === 1 || p === result.totalPages || Math.abs(p - result.page) <= 1) {
@@ -404,9 +818,7 @@ function renderPagination(result) {
 }
 
 function pageBtn(label, enabled, target, active) {
-  var cls = active
-    ? 'bg-brand-600 text-white'
-    : 'bg-white dark:bg-slate-800 hover:bg-brand-50 dark:hover:bg-slate-700';
+  var cls = active ? 'bg-brand-600 text-white' : 'bg-white dark:bg-slate-800 hover:bg-brand-50 dark:hover:bg-slate-700';
   return '<button ' + (enabled ? '' : 'disabled') +
     ' class="btn ' + cls + ' px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700"' +
     (enabled ? ' onclick="gotoPage(' + target + ')"' : '') + '>' + label + '</button>';
@@ -418,12 +830,15 @@ function gotoPage(p) { APP.repo.page = p; loadMedia(); window.scrollTo({ top: 0,
 
 function confirmDelete(id, title) {
   Swal.fire({
-    icon: 'warning', title: 'Delete this media?',
-    html: 'You are about to delete <b>' + escapeHtml(title) + '</b>.<br>This also trashes the Drive file and cannot be undone.',
-    showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#ef4444'
+    icon: 'warning',
+    title: t('deleteConfirmTitle'),
+    html: t('deleteConfirmHtml').replace('{title}', escapeHtml(title)),
+    showCancelButton: true,
+    confirmButtonText: t('btnDelete'),
+    confirmButtonColor: '#ef4444'
   }).then(async function (r) {
     if (!r.isConfirmed) return;
-    try { await api.remove(id); toastOk('Media deleted'); loadMedia(); }
+    try { await api.remove(id); toastOk(t('mediaDeletedMsg')); loadMedia(); }
     catch (err) { showError(err); }
   });
 }
@@ -431,21 +846,25 @@ function confirmDelete(id, title) {
 async function editMedia(id) {
   try {
     var m = await api.getOne(id);
-    var deptOpts = APP.options.departments.map(opt(m.department)).join('');
-    var typeOpts = APP.options.mediaTypes.map(opt(m.mediaType)).join('');
-    var gradeOpts = APP.options.gradeLevels.map(opt(m.gradeLevel)).join('');
-    var statusOpts = APP.options.statusOptions.map(opt(m.status)).join('');
+    var deptOpts   = APP.options.departments.map(opt(m.department)).join('');
+    var typeOpts   = APP.options.mediaTypes.map(function (v) {
+      return '<option value="' + v + '"' + (v === m.mediaType ? ' selected' : '') + '>' + typeLabel(v) + '</option>';
+    }).join('');
+    var gradeOpts  = APP.options.gradeLevels.map(opt(m.gradeLevel)).join('');
+    var statusOpts = APP.options.statusOptions.map(function (v) {
+      return '<option value="' + v + '"' + (v === m.status ? ' selected' : '') + '>' + statusLabelText(v) + '</option>';
+    }).join('');
 
     var { value: form } = await Swal.fire({
-      title: 'Edit Media', width: 600, confirmButtonText: 'Save',
+      title: t('editMediaTitle'), width: 600, confirmButtonText: t('btnSaveEdit'),
       html:
         '<div class="text-left space-y-2">' +
-        '<label class="label">Title</label><input id="e-title" class="field" value="' + escapeAttr(m.title) + '">' +
-        '<label class="label">Type</label><select id="e-type" class="field">' + typeOpts + '</select>' +
-        '<label class="label">Department</label><select id="e-dept" class="field">' + deptOpts + '</select>' +
-        '<label class="label">Grade</label><select id="e-grade" class="field">' + gradeOpts + '</select>' +
-        '<label class="label">Status</label><select id="e-status" class="field">' + statusOpts + '</select>' +
-        '<label class="label">Description</label><textarea id="e-desc" class="field" rows="3">' + escapeHtml(m.description || '') + '</textarea>' +
+        '<label class="label">' + t('labelTitleEdit') + '</label><input id="e-title" class="field" value="' + escapeAttr(m.title) + '">' +
+        '<label class="label">' + t('fieldType') + '</label><select id="e-type" class="field">' + typeOpts + '</select>' +
+        '<label class="label">' + t('fieldDept') + '</label><select id="e-dept" class="field">' + deptOpts + '</select>' +
+        '<label class="label">' + t('fieldGrade') + '</label><select id="e-grade" class="field">' + gradeOpts + '</select>' +
+        '<label class="label">' + t('fieldStatus') + '</label><select id="e-status" class="field">' + statusOpts + '</select>' +
+        '<label class="label">' + t('fieldDesc') + '</label><textarea id="e-desc" class="field" rows="3">' + escapeHtml(m.description || '') + '</textarea>' +
         '</div>',
       focusConfirm: false,
       preConfirm: function () {
@@ -460,9 +879,9 @@ async function editMedia(id) {
       }
     });
     if (!form) return;
-    if (!form.title) { toastErr('Title is required'); return; }
+    if (!form.title) { toastErr(t('errTitleRequired')); return; }
     await api.update(id, form);
-    toastOk('Media updated');
+    toastOk(t('mediaUpdatedMsg'));
     loadMedia();
   } catch (err) { showError(err); }
 }
@@ -476,25 +895,23 @@ var uploadState = { file: null, base64: null, mode: 'file' };
 function renderUpload() {
   uploadState = { file: null, base64: null, mode: 'file' };
 
-  fillSelect(document.getElementById('m-type'),  APP.options.mediaTypes, false);
-  fillSelect(document.getElementById('m-dept'),  APP.options.departments, false);
-  fillSelect(document.getElementById('m-grade'), APP.options.gradeLevels, false);
-  fillSelect(document.getElementById('m-status'), APP.options.statusOptions, false);
+  fillTypeSelect(document.getElementById('m-type'), false);
+  fillSelect(document.getElementById('m-dept'),   APP.options.departments, false);
+  fillSelect(document.getElementById('m-grade'),  APP.options.gradeLevels, false);
+  fillStatusSelect(document.getElementById('m-status'), false);
+
   document.getElementById('dz-hint').textContent =
-    'Allowed: ' + APP.options.allowedExtensions.slice(0, 12).join(', ') + '… · up to ' +
+    APP.options.allowedExtensions.slice(0, 12).join(', ') + '… · ' +
     Math.round(APP.options.maxFileSize / 1024 / 1024) + ' MB';
 
-  // Source toggle.
   document.getElementById('src-file').addEventListener('click', function () { setUploadMode('file'); });
   document.getElementById('src-link').addEventListener('click', function () { setUploadMode('link'); });
 
-  // Drag & drop wiring.
-  var dz = document.getElementById('dropzone');
+  var dz    = document.getElementById('dropzone');
   var input = document.getElementById('file-input');
   document.getElementById('browse-link').addEventListener('click', function () { input.click(); });
   dz.addEventListener('click', function (e) { if (e.target.id !== 'browse-link') input.click(); });
   input.addEventListener('change', function () { if (input.files[0]) acceptFile(input.files[0]); });
-
   ['dragenter', 'dragover'].forEach(function (ev) {
     dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.add('dragover'); });
   });
@@ -505,7 +922,6 @@ function renderUpload() {
     if (e.dataTransfer.files[0]) acceptFile(e.dataTransfer.files[0]);
   });
   document.getElementById('file-remove').addEventListener('click', clearFile);
-
   document.getElementById('upload-form').addEventListener('submit', submitUpload);
 }
 
@@ -524,34 +940,32 @@ function setUploadMode(mode) {
   }
 }
 
-/** Validates a chosen file client-side and reads it to base64. */
 function acceptFile(file) {
   var ext = (file.name.split('.').pop() || '').toLowerCase();
   if (APP.options.allowedExtensions.indexOf(ext) === -1) {
-    toastErr('File type ".' + ext + '" is not allowed'); return;
+    toastErr('.' + ext + ' — ' + t('errFileTooLarge').replace('large', 'allowed').replace('ใหญ่', 'อนุญาต'));
+    return;
   }
-  if (file.size > APP.options.maxFileSize) {
-    toastErr('File is too large'); return;
-  }
+  if (file.size > APP.options.maxFileSize) { toastErr(t('errFileTooLarge')); return; }
   uploadState.file = file;
 
   document.getElementById('file-preview').classList.remove('hidden');
   document.getElementById('file-name').textContent = file.name;
   document.getElementById('file-size').textContent = formatBytes(file.size);
   document.getElementById('file-icon').className = 'fa-solid ' + typeIcon(typeFromExt(ext)) + ' text-2xl text-brand-500';
-  setProgress(0, 'Reading file…');
+  setProgress(0, t('progressReading'));
 
-  // Read with progress, strip the data-URI prefix to get raw base64.
   var reader = new FileReader();
-  reader.onprogress = function (e) { if (e.lengthComputable) setProgress(Math.round(e.loaded / e.total * 40), 'Reading…'); };
+  reader.onprogress = function (e) {
+    if (e.lengthComputable) setProgress(Math.round(e.loaded / e.total * 40), t('progressReadingPct'));
+  };
   reader.onload = function () {
     uploadState.base64 = reader.result.split(',')[1];
-    setProgress(40, 'Ready to upload');
+    setProgress(40, t('progressReady'));
   };
-  reader.onerror = function () { toastErr('Could not read file'); };
+  reader.onerror = function () { toastErr(t('errCouldNotRead')); };
   reader.readAsDataURL(file);
 
-  // Auto-fill the title and best-guess media type if empty.
   var titleEl = document.getElementById('m-title');
   if (!titleEl.value) titleEl.value = file.name.replace(/\.[^.]+$/, '');
   document.getElementById('m-type').value = typeFromExt(ext);
@@ -561,7 +975,7 @@ function clearFile() {
   uploadState.file = null; uploadState.base64 = null;
   document.getElementById('file-input').value = '';
   document.getElementById('file-preview').classList.add('hidden');
-  setProgress(0, 'Ready');
+  setProgress(0, t('progressDefault'));
 }
 
 function setProgress(pct, label) {
@@ -572,48 +986,42 @@ function setProgress(pct, label) {
 async function submitUpload(e) {
   e.preventDefault();
   var saveBtn = document.getElementById('save-btn');
-
-  // --- Client-side validation (mirrors the server) ---
   var record = {
-    title: document.getElementById('m-title').value.trim(),
-    mediaType: document.getElementById('m-type').value,
-    department: document.getElementById('m-dept').value,
-    gradeLevel: document.getElementById('m-grade').value,
-    status: document.getElementById('m-status').value,
+    title:       document.getElementById('m-title').value.trim(),
+    mediaType:   document.getElementById('m-type').value,
+    department:  document.getElementById('m-dept').value,
+    gradeLevel:  document.getElementById('m-grade').value,
+    status:      document.getElementById('m-status').value,
     creatorName: document.getElementById('m-creator').value.trim(),
     description: document.getElementById('m-desc').value.trim()
   };
-  if (!record.title) return toastErr('Media title is required');
-  if (!record.mediaType) return toastErr('Media type is required');
-  if (!record.department) return toastErr('Department is required');
-  if (!record.gradeLevel) return toastErr('Grade level is required');
+  if (!record.title)      return toastErr(t('errTitleRequired'));
+  if (!record.mediaType)  return toastErr(t('errTypeRequired'));
+  if (!record.department) return toastErr(t('errDeptRequired'));
+  if (!record.gradeLevel) return toastErr(t('errGradeRequired'));
 
   saveBtn.disabled = true;
-
   try {
     if (uploadState.mode === 'file') {
-      if (!uploadState.base64) { saveBtn.disabled = false; return toastErr('Please choose a file'); }
-      setProgress(60, 'Uploading to Drive…');
+      if (!uploadState.base64) { saveBtn.disabled = false; return toastErr(t('errChooseFile')); }
+      setProgress(60, t('progressUploading'));
       var up = await api.upload({
-        data: uploadState.base64,
-        fileName: uploadState.file.name,
-        mimeType: uploadState.file.type,
-        mediaType: record.mediaType
+        data: uploadState.base64, fileName: uploadState.file.name,
+        mimeType: uploadState.file.type, mediaType: record.mediaType
       });
-      setProgress(85, 'Saving record…');
-      record.driveFileId = up.fileId;
-      record.driveLink = up.url;
+      setProgress(85, t('progressSaving'));
+      record.driveFileId  = up.fileId;
+      record.driveLink    = up.url;
       record.thumbnailUrl = up.thumbnailUrl;
     } else {
       var link = document.getElementById('m-link').value.trim();
-      if (!link) { saveBtn.disabled = false; return toastErr('Please enter a URL'); }
+      if (!link) { saveBtn.disabled = false; return toastErr(t('errEnterUrl')); }
       record.driveLink = link;
       record.mediaType = record.mediaType || 'Link';
     }
-
     await api.save(record);
-    setProgress(100, 'Done');
-    await Swal.fire({ icon: 'success', title: 'Media saved!', timer: 1400, showConfirmButton: false });
+    setProgress(100, t('progressDone'));
+    await Swal.fire({ icon: 'success', title: t('mediaSavedTitle'), timer: 1400, showConfirmButton: false });
     location.hash = '#repository';
   } catch (err) {
     showError(err);
@@ -630,17 +1038,16 @@ async function renderCategories() {
   document.getElementById('cat-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     var cat = {
-      name: document.getElementById('cat-name').value.trim(),
-      type: document.getElementById('cat-type').value,
+      name:        document.getElementById('cat-name').value.trim(),
+      type:        document.getElementById('cat-type').value,
       description: document.getElementById('cat-desc').value.trim()
     };
-    if (!cat.name) return toastErr('Name is required');
+    if (!cat.name) return toastErr(t('errNameRequired'));
     try {
       await api.addCategory(cat);
-      toastOk('Category added');
+      toastOk(t('categoryAddedMsg'));
       document.getElementById('cat-form').reset();
       loadCategories();
-      // Refresh cached department options.
       APP.options.departments = (await api.categories())
         .filter(function (c) { return !c.type || c.type === 'Department'; })
         .map(function (c) { return c.name; });
@@ -651,11 +1058,11 @@ async function renderCategories() {
 
 async function loadCategories() {
   var tbody = document.getElementById('cat-tbody');
-  tbody.innerHTML = '<tr><td colspan="4" class="text-center text-slate-400 py-6">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="4" class="text-center text-slate-400 py-6">' + t('loadingEllipsis') + '</td></tr>';
   try {
     var cats = await api.categories();
     if (!cats.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-slate-400 py-6">No categories yet</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-slate-400 py-6">' + t('noCategoriesYet') + '</td></tr>';
       return;
     }
     var canDelete = APP.user && APP.user.isAdmin;
@@ -673,12 +1080,12 @@ async function loadCategories() {
 
 function deleteCategory(id, name) {
   Swal.fire({
-    icon: 'warning', title: 'Delete category?',
-    text: 'Remove "' + name + '"? Existing media keep their department label.',
-    showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Delete'
+    icon: 'warning', title: t('deleteCatTitle'),
+    text: '"' + name + '" — ' + t('deleteCatText'),
+    showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: t('btnDelete')
   }).then(async function (r) {
     if (!r.isConfirmed) return;
-    try { await api.deleteCategory(id); toastOk('Category deleted'); loadCategories(); }
+    try { await api.deleteCategory(id); toastOk(t('categoryDeletedMsg')); loadCategories(); }
     catch (err) { showError(err); }
   });
 }
@@ -696,14 +1103,14 @@ async function renderReports() {
   try {
     var d = await api.dashboard();
     cards.innerHTML = [
-      statCard('Total Media', d.totals.media, 'fa-photo-film', 'brand'),
-      statCard('Total Views', d.totals.views, 'fa-eye', 'brand'),
-      statCard('Total Downloads', d.totals.downloads, 'fa-download', 'accent'),
-      statCard('Departments', d.totals.departments, 'fa-tags', 'brand')
+      statCard(t('totalMedia'),     d.totals.media,      'fa-photo-film', 'brand'),
+      statCard(t('totalViews'),     d.totals.views,      'fa-eye',        'brand'),
+      statCard(t('totalDownloads'), d.totals.downloads,  'fa-download',   'accent'),
+      statCard(t('departments'),    d.totals.departments, 'fa-tags',      'brand')
     ].join('');
-    drawBar('rep-chart-dept', d.byDepartment, 'Media');
+    drawBar('rep-chart-dept',   d.byDepartment, t('totalMedia'));
     drawDoughnut('rep-chart-status', d.byStatus);
-    drawLine('rep-chart-trend', d.uploadsByMonth, 'Uploads');
+    drawLine('rep-chart-trend', d.uploadsByMonth, t('uploadsTrend'));
   } catch (err) { showError(err); }
 }
 
@@ -713,7 +1120,7 @@ async function downloadPdf() {
   try {
     var r = await api.reportPdf();
     downloadBase64(r.base64, r.mimeType, r.fileName);
-    toastOk('Report downloaded');
+    toastOk(t('reportDownloadedMsg'));
   } catch (err) { showError(err); } finally { btn.disabled = false; }
 }
 
@@ -722,16 +1129,15 @@ async function downloadPdf() {
    =========================================================================== */
 
 function renderSettings() {
-  document.getElementById('set-email').textContent = APP.user.email || 'Guest';
-  document.getElementById('set-role').textContent = APP.user.role || 'Viewer';
+  document.getElementById('set-email').textContent = APP.user.email  || 'Guest';
+  document.getElementById('set-role').textContent  = APP.user.role   || 'Viewer';
   document.getElementById('set-domain').textContent = APP.settings.restrictToDomain
-    ? ('On (' + APP.settings.schoolDomain + ')') : 'Off';
+    ? (t('settingDomainOn') + ' (' + APP.settings.schoolDomain + ')') : t('settingDomainOff');
 
   document.getElementById('set-theme').addEventListener('click', toggleTheme);
   document.getElementById('set-export').addEventListener('click', exportCsv);
 
   var importInput = document.getElementById('set-import');
-  // Only editors may import.
   if (!APP.user.canEdit) {
     importInput.disabled = true;
     importInput.parentElement.classList.add('opacity-50', 'pointer-events-none');
@@ -744,8 +1150,8 @@ function renderSettings() {
         var res = await api.importCsv(reader.result);
         Swal.fire({
           icon: res.errors.length ? 'warning' : 'success',
-          title: 'Import complete',
-          html: 'Imported: <b>' + res.imported + '</b><br>Skipped: <b>' + res.skipped + '</b>' +
+          title: t('importCompleteTitle'),
+          html: t('importedLabel') + ' <b>' + res.imported + '</b><br>' + t('skippedLabel') + ' <b>' + res.skipped + '</b>' +
             (res.errors.length ? '<br><small>' + res.errors.slice(0, 5).map(escapeHtml).join('<br>') + '</small>' : '')
         });
       } catch (err) { showError(err); }
@@ -759,10 +1165,9 @@ function renderSettings() {
    10. SHARED HELPERS
    =========================================================================== */
 
-/* --- Detail modal: preview, view count, favorite, download, comments --- */
 async function openDetail(id) {
   try {
-    var m = await api.getOne(id);          // increments view count server-side
+    var m = await api.getOne(id);
     var comments = await api.comments(id);
     var fav = APP.favorites.indexOf(id) !== -1;
 
@@ -778,34 +1183,31 @@ async function openDetail(id) {
         preview +
         '<div class="flex items-center gap-2 mt-3 flex-wrap">' +
           statusBadge(m.status) +
-          '<span class="badge badge-type"><i class="fa-solid ' + typeIcon(m.mediaType) + '"></i>' + escapeHtml(m.mediaType) + '</span>' +
-          '<span class="text-xs text-slate-400"><i class="fa-solid fa-eye"></i> ' + (m.viewCount || 0) + ' views</span>' +
+          '<span class="badge badge-type"><i class="fa-solid ' + typeIcon(m.mediaType) + '"></i>' + typeLabel(m.mediaType) + '</span>' +
+          '<span class="text-xs text-slate-400"><i class="fa-solid fa-eye"></i> ' + (m.viewCount || 0) + ' ' + t('detailViews') + '</span>' +
         '</div>' +
-        '<p class="text-sm text-slate-500 dark:text-slate-300 mt-3">' + escapeHtml(m.description || 'No description.') + '</p>' +
+        '<p class="text-sm text-slate-500 dark:text-slate-300 mt-3">' + escapeHtml(m.description || t('noDesc')) + '</p>' +
         '<dl class="grid grid-cols-2 gap-2 text-xs mt-3 text-slate-500">' +
-          '<div><dt class="text-slate-400">Department</dt><dd>' + escapeHtml(m.department || '—') + '</dd></div>' +
-          '<div><dt class="text-slate-400">Grade</dt><dd>' + escapeHtml(m.gradeLevel || '—') + '</dd></div>' +
-          '<div><dt class="text-slate-400">Creator</dt><dd>' + escapeHtml(m.creatorName || '—') + '</dd></div>' +
-          '<div><dt class="text-slate-400">Uploaded</dt><dd>' + formatDate(m.uploadDate) + '</dd></div>' +
+          '<div><dt class="text-slate-400">' + t('detailDept') + '</dt><dd>' + escapeHtml(m.department || '—') + '</dd></div>' +
+          '<div><dt class="text-slate-400">' + t('detailGrade') + '</dt><dd>' + escapeHtml(m.gradeLevel || '—') + '</dd></div>' +
+          '<div><dt class="text-slate-400">' + t('detailCreator') + '</dt><dd>' + escapeHtml(m.creatorName || '—') + '</dd></div>' +
+          '<div><dt class="text-slate-400">' + t('detailUploaded') + '</dt><dd>' + formatDate(m.uploadDate) + '</dd></div>' +
         '</dl>' +
         '<div class="flex items-center gap-2 mt-4">' +
-          (m.driveLink ? '<a href="' + m.driveLink + '" target="_blank" class="btn btn-ghost text-sm"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a>' : '') +
-          (m.driveLink ? '<button class="btn btn-primary text-sm" onclick="downloadMedia(\'' + id + '\')"><i class="fa-solid fa-download"></i> Download</button>' : '') +
-          '<button class="btn btn-ghost text-sm" id="d-fav"><i class="' + (fav ? 'fa-solid text-red-500' : 'fa-regular') + ' fa-heart"></i> Favorite</button>' +
+          (m.driveLink ? '<a href="' + m.driveLink + '" target="_blank" class="btn btn-ghost text-sm"><i class="fa-solid fa-arrow-up-right-from-square"></i> ' + t('btnOpen') + '</a>' : '') +
+          (m.driveLink ? '<button class="btn btn-primary text-sm" onclick="downloadMedia(\'' + id + '\')"><i class="fa-solid fa-download"></i> ' + t('btnDownload') + '</button>' : '') +
+          '<button class="btn btn-ghost text-sm" id="d-fav"><i class="' + (fav ? 'fa-solid text-red-500' : 'fa-regular') + ' fa-heart"></i> ' + t('btnFavorite') + '</button>' +
         '</div>' +
         '<div class="mt-4 flex flex-col items-center gap-1 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">' +
-          '<div id="' + qrId + '"></div><p class="text-xs text-slate-400">Scan to share</p>' +
+          '<div id="' + qrId + '"></div><p class="text-xs text-slate-400">' + t('scanToShare') + '</p>' +
         '</div>' +
         commentsHtml(comments) +
       '</div>';
 
     Swal.fire({ title: m.title, html: html, width: 560, showConfirmButton: false, showCloseButton: true,
       didOpen: function () {
-        // Render QR code.
         try { new QRCode(document.getElementById(qrId), { text: shareUrl, width: 120, height: 120 }); } catch (e) {}
-        // Favorite button.
         document.getElementById('d-fav').addEventListener('click', function () { toggleFav(id, this); });
-        // Comment submit.
         var cb = document.getElementById('comment-submit');
         if (cb) cb.addEventListener('click', function () { submitComment(id); });
       }
@@ -820,39 +1222,34 @@ function commentsHtml(comments) {
       '<p class="text-xs font-medium">' + escapeHtml(c.userName || c.userEmail) + ' ' + stars +
       '<span class="text-slate-400 font-normal">· ' + formatDate(c.createdDate) + '</span></p>' +
       '<p class="text-sm">' + escapeHtml(c.comment) + '</p></div>';
-  }).join('') : '<p class="text-xs text-slate-400">No comments yet.</p>';
+  }).join('') : '<p class="text-xs text-slate-400">' + t('noCommentsYet') + '</p>';
 
-  return '<div class="mt-4"><h4 class="font-semibold text-sm mb-2"><i class="fa-solid fa-comments text-brand-500 mr-1"></i>Comments &amp; Reviews</h4>' +
+  return '<div class="mt-4"><h4 class="font-semibold text-sm mb-2">' +
+    '<i class="fa-solid fa-comments text-brand-500 mr-1"></i>' + t('commentsTitle') + '</h4>' +
     '<div class="max-h-40 overflow-y-auto mb-2">' + list + '</div>' +
     '<div class="flex gap-2 items-start">' +
       '<select id="comment-rating" class="field w-20 text-sm"><option value="">★</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>' +
-      '<textarea id="comment-text" class="field text-sm" rows="1" placeholder="Add a comment…"></textarea>' +
+      '<textarea id="comment-text" class="field text-sm" rows="1" placeholder="' + t('commentPlaceholder') + '"></textarea>' +
       '<button id="comment-submit" class="btn btn-primary text-sm"><i class="fa-solid fa-paper-plane"></i></button>' +
     '</div></div>';
 }
 
 async function submitComment(id) {
-  var text = document.getElementById('comment-text').value.trim();
+  var text   = document.getElementById('comment-text').value.trim();
   var rating = document.getElementById('comment-rating').value;
-  if (!text) return toastErr('Comment cannot be empty');
-  try { await api.addComment(id, text, rating); openDetail(id); }   // reopen to refresh
+  if (!text) return toastErr(t('errCommentEmpty'));
+  try { await api.addComment(id, text, rating); openDetail(id); }
   catch (err) { showError(err); }
 }
 
 async function toggleFav(id, btn) {
   try {
     var r = await api.toggleFavorite(id);
-    if (r.favorited) {
-      if (APP.favorites.indexOf(id) === -1) APP.favorites.push(id);
-    } else {
-      APP.favorites = APP.favorites.filter(function (x) { return x !== id; });
-    }
+    if (r.favorited) { if (APP.favorites.indexOf(id) === -1) APP.favorites.push(id); }
+    else { APP.favorites = APP.favorites.filter(function (x) { return x !== id; }); }
     var icon = btn.querySelector('i');
-    if (icon) {
-      icon.className = (r.favorited ? 'fa-solid text-red-500' : 'fa-regular text-slate-400') +
-        (btn.id === 'd-fav' ? ' fa-heart' : ' fa-heart');
-    }
-    toastOk(r.favorited ? 'Added to favorites' : 'Removed from favorites');
+    if (icon) icon.className = (r.favorited ? 'fa-solid text-red-500' : 'fa-regular text-slate-400') + ' fa-heart';
+    toastOk(t(r.favorited ? 'addedToFavorites' : 'removedFromFavorites'));
   } catch (err) { showError(err); }
 }
 
@@ -860,9 +1257,7 @@ async function downloadMedia(id) {
   try {
     var m = await api.getOne(id);
     api.recordDownload(id, 'download').catch(function () {});
-    var url = m.driveFileId
-      ? 'https://drive.google.com/uc?export=download&id=' + m.driveFileId
-      : m.driveLink;
+    var url = m.driveFileId ? 'https://drive.google.com/uc?export=download&id=' + m.driveFileId : m.driveLink;
     window.open(url, '_blank');
   } catch (err) { showError(err); }
 }
@@ -872,7 +1267,7 @@ async function exportCsv() {
     var r = await api.exportCsv();
     var blob = new Blob([r.content], { type: r.mimeType });
     triggerDownload(URL.createObjectURL(blob), r.fileName);
-    toastOk('Export ready');
+    toastOk(t('exportReadyMsg'));
   } catch (err) { showError(err); }
 }
 
@@ -932,12 +1327,11 @@ function initTheme() {
 function toggleTheme() {
   var dark = document.documentElement.classList.toggle('dark');
   localStorage.setItem('iqra-theme', dark ? 'dark' : 'light');
-  // Re-render charts so their text colours follow the theme.
   if (location.hash.indexOf('dashboard') !== -1) renderDashboard();
-  if (location.hash.indexOf('reports') !== -1) renderReports();
+  if (location.hash.indexOf('reports') !== -1)   renderReports();
 }
 
-/* --- Sidebar (mobile) --- */
+/* --- Sidebar (mobile) + language toggle wiring --- */
 function wireChrome() {
   var sb = document.getElementById('sidebar');
   var bd = document.getElementById('backdrop');
@@ -945,6 +1339,11 @@ function wireChrome() {
     sb.classList.toggle('-translate-x-full'); bd.classList.toggle('hidden');
   });
   bd.addEventListener('click', closeSidebar);
+
+  /* Language toggle */
+  document.getElementById('lang-toggle').addEventListener('click', function () {
+    setLang(LANG === 'th' ? 'en' : 'th');
+  });
 }
 function closeSidebar() {
   if (window.innerWidth < 1024) {
@@ -954,25 +1353,61 @@ function closeSidebar() {
 }
 
 /* --- Generic helpers --- */
+
+/**
+ * Fills a <select> with plain values (value == display label, or "All" at top).
+ * For media type / status selects use the dedicated helpers below.
+ */
 function fillSelect(sel, values, includeAll) {
   if (!sel) return;
-  sel.innerHTML = (includeAll ? '<option value="">All</option>' : '') +
+  sel.innerHTML = (includeAll ? '<option value="">' + t('optAll') + '</option>' : '') +
     values.map(function (v) { return '<option value="' + escapeAttr(v) + '">' + escapeHtml(v) + '</option>'; }).join('');
 }
+
+/** Fills a media-type <select> with translated display labels (value stays English). */
+function fillTypeSelect(sel, includeAll) {
+  if (!sel) return;
+  sel.innerHTML = (includeAll ? '<option value="">' + t('optAll') + '</option>' : '') +
+    APP.options.mediaTypes.map(function (v) {
+      return '<option value="' + v + '">' + typeLabel(v) + '</option>';
+    }).join('');
+}
+
+/** Fills a status <select> with translated labels. */
+function fillStatusSelect(sel, includeAll) {
+  if (!sel) return;
+  sel.innerHTML = (includeAll ? '<option value="">' + t('optAll') + '</option>' : '') +
+    APP.options.statusOptions.map(function (v) {
+      return '<option value="' + v + '">' + statusLabelText(v) + '</option>';
+    }).join('');
+}
+
 function opt(selected) {
   return function (v) {
     return '<option value="' + escapeAttr(v) + '"' + (v === selected ? ' selected' : '') + '>' + escapeHtml(v) + '</option>';
   };
 }
+
+/** Returns a localised label for a media type value. */
+function typeLabel(type) {
+  var map = { Document: 'typeDocument', Image: 'typeImage', Video: 'typeVideo', Audio: 'typeAudio', PDF: 'typePDF', Link: 'typeLink' };
+  return t(map[type] || 'typeDocument');
+}
+
+/** Returns a localised label for a status value. */
+function statusLabelText(status) {
+  var map = { Published: 'statusPublished', Draft: 'statusDraft', Archived: 'statusArchived' };
+  return t(map[status] || 'statusDraft');
+}
+
 function statusBadge(status) {
   var cls = status === 'Published' ? 'badge-published' : (status === 'Draft' ? 'badge-draft' : 'badge-archived');
-  return '<span class="badge ' + cls + '">' + escapeHtml(status || 'Draft') + '</span>';
+  return '<span class="badge ' + cls + '">' + statusLabelText(status || 'Draft') + '</span>';
 }
+
 function typeIcon(type) {
-  return ({
-    Document: 'fa-file-word', Image: 'fa-image', Video: 'fa-film',
-    Audio: 'fa-music', PDF: 'fa-file-pdf', Link: 'fa-link'
-  })[type] || 'fa-file';
+  return ({ Document: 'fa-file-word', Image: 'fa-image', Video: 'fa-film',
+            Audio: 'fa-music', PDF: 'fa-file-pdf', Link: 'fa-link' })[type] || 'fa-file';
 }
 function typeFromExt(ext) {
   if (['jpg','jpeg','png','gif','webp','svg','bmp'].indexOf(ext) !== -1) return 'Image';
@@ -985,7 +1420,7 @@ function thumbFallbackHtml(type) {
   return '<div class="w-full h-40 flex items-center justify-center bg-brand-50 dark:bg-slate-800">' +
     '<i class="fa-solid ' + typeIcon(type) + ' text-4xl text-brand-300"></i></div>';
 }
-function thumbFallback(type) {           // returns a node for img onerror replacement
+function thumbFallback(type) {
   var div = document.createElement('div');
   div.innerHTML = thumbFallbackHtml(type);
   return div.firstChild;
@@ -995,7 +1430,6 @@ function skeletonCards(n) {
   return new Array(n).fill(one).join('');
 }
 function emptyLi(text) { return '<li class="py-4 text-sm text-slate-400 text-center">' + text + '</li>'; }
-
 function formatBytes(b) {
   if (b < 1024) return b + ' B';
   if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
@@ -1004,7 +1438,8 @@ function formatBytes(b) {
 function formatDate(v) {
   if (!v) return '—';
   var d = new Date(v); if (isNaN(d)) return '—';
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString(LANG === 'th' ? 'th-TH' : 'en-GB',
+    { year: 'numeric', month: 'short', day: 'numeric' });
 }
 function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -1012,7 +1447,6 @@ function escapeHtml(s) {
   });
 }
 function escapeAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;'); }
-
 function triggerDownload(url, fileName) {
   var a = document.createElement('a');
   a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); a.remove();
@@ -1020,11 +1454,12 @@ function triggerDownload(url, fileName) {
 function downloadBase64(base64, mime, fileName) {
   var bin = atob(base64); var bytes = new Uint8Array(bin.length);
   for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  var blob = new Blob([bytes], { type: mime });
-  triggerDownload(URL.createObjectURL(blob), fileName);
+  triggerDownload(URL.createObjectURL(new Blob([bytes], { type: mime })), fileName);
 }
 function debounce(fn, ms) {
-  var t; return function () { var a = arguments, c = this; clearTimeout(t);
-    t = setTimeout(function () { fn.apply(c, a); }, ms); };
+  var tmr; return function () {
+    var a = arguments, c = this; clearTimeout(tmr);
+    tmr = setTimeout(function () { fn.apply(c, a); }, ms);
+  };
 }
 </script>

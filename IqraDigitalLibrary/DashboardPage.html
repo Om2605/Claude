@@ -9,10 +9,10 @@
     <!-- Page heading -->
     <div class="flex items-center justify-between flex-wrap gap-3">
       <div>
-        <h2 class="text-2xl font-bold">Dashboard</h2>
-        <p class="text-slate-400 text-sm">Overview of your school's digital media library</p>
+        <h2 class="text-2xl font-bold" data-i18n="pageDashboardTitle">แดชบอร์ด</h2>
+        <p class="text-slate-400 text-sm" data-i18n="pageDashboardSub">ภาพรวมคลังสื่อการสอนของโรงเรียน</p>
       </div>
-      <a href="#upload" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Media</a>
+      <a href="#upload" class="btn btn-primary"><i class="fa-solid fa-plus"></i> <span data-i18n="navAddMedia">เพิ่มสื่อใหม่</span></a>
     </div>
 
     <!-- Stat cards -->
@@ -23,11 +23,11 @@
     <!-- Charts -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="ui-card shadow-card p-5">
-        <h3 class="font-semibold mb-4"><i class="fa-solid fa-chart-pie text-brand-500 mr-2"></i>Media by Type</h3>
+        <h3 class="font-semibold mb-4"><i class="fa-solid fa-chart-pie text-brand-500 mr-2"></i><span data-i18n="mediaByType">สื่อตามประเภท</span></h3>
         <div class="h-64"><canvas id="chart-type"></canvas></div>
       </div>
       <div class="ui-card shadow-card p-5">
-        <h3 class="font-semibold mb-4"><i class="fa-solid fa-chart-line text-brand-500 mr-2"></i>Uploads (last 6 months)</h3>
+        <h3 class="font-semibold mb-4"><i class="fa-solid fa-chart-line text-brand-500 mr-2"></i><span data-i18n="uploadsTrend">การอัปโหลด (6 เดือนล่าสุด)</span></h3>
         <div class="h-64"><canvas id="chart-uploads"></canvas></div>
       </div>
     </div>
@@ -35,11 +35,11 @@
     <!-- Recent + top viewed -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="ui-card shadow-card p-5">
-        <h3 class="font-semibold mb-3"><i class="fa-solid fa-clock-rotate-left text-brand-500 mr-2"></i>Recent Uploads</h3>
+        <h3 class="font-semibold mb-3"><i class="fa-solid fa-clock-rotate-left text-brand-500 mr-2"></i><span data-i18n="recentUploads">อัปโหลดล่าสุด</span></h3>
         <ul class="divide-y divide-slate-100 dark:divide-slate-700" id="recent-list"></ul>
       </div>
       <div class="ui-card shadow-card p-5">
-        <h3 class="font-semibold mb-3"><i class="fa-solid fa-fire text-accent-400 mr-2"></i>Most Viewed</h3>
+        <h3 class="font-semibold mb-3"><i class="fa-solid fa-fire text-accent-400 mr-2"></i><span data-i18n="mostViewed">ดูมากที่สุด</span></h3>
         <ul class="divide-y divide-slate-100 dark:divide-slate-700" id="top-list"></ul>
       </div>
     </div>

@@ -7,9 +7,14 @@
        things that repeat across pages (nav links, cards, buttons, badges).
 
   Palette (per spec): light blue + white base with pastel-yellow accents.
+  Thai + Latin font: Google Fonts "Sarabun" renders both scripts cleanly.
   Served into <head> by include('Styles').
   ---------------------------------------------------------------------------
 -->
+<!-- Google Fonts: Sarabun covers Thai + Latin in one typeface -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
   // Tailwind CDN configuration. `darkMode: 'class'` lets us toggle the theme by
   // adding/removing the `dark` class on <html>.
@@ -41,7 +46,7 @@
 <style>
   /* ---- Base ---- */
   html { scroll-behavior: smooth; }
-  body { -webkit-font-smoothing: antialiased; }
+  body { -webkit-font-smoothing: antialiased; font-family: 'Sarabun', ui-sans-serif, system-ui, sans-serif; }
 
   /* ---- Sidebar navigation links ---- */
   .nav-link {

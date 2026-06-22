@@ -7,26 +7,31 @@
   <section class="max-w-3xl mx-auto space-y-6">
 
     <div>
-      <h2 class="text-2xl font-bold">Add New Media</h2>
-      <p class="text-slate-400 text-sm">Upload a file to Google Drive or link external media</p>
+      <h2 class="text-2xl font-bold" data-i18n="pageUploadTitle">เพิ่มสื่อใหม่</h2>
+      <p class="text-slate-400 text-sm" data-i18n="pageUploadSub">อัปโหลดไฟล์หรือเชื่อมโยงสื่อจากภายนอก</p>
     </div>
 
     <form id="upload-form" class="space-y-6">
 
       <!-- Source toggle: file vs link -->
       <div class="flex gap-2">
-        <button type="button" id="src-file" class="btn btn-primary flex-1"><i class="fa-solid fa-file-arrow-up"></i> Upload File</button>
-        <button type="button" id="src-link" class="btn btn-ghost flex-1"><i class="fa-solid fa-link"></i> External Link</button>
+        <button type="button" id="src-file" class="btn btn-primary flex-1">
+          <i class="fa-solid fa-file-arrow-up"></i> <span data-i18n="btnUploadFile">อัปโหลดไฟล์</span>
+        </button>
+        <button type="button" id="src-link" class="btn btn-ghost flex-1">
+          <i class="fa-solid fa-link"></i> <span data-i18n="btnExternalLink">ลิงก์ภายนอก</span>
+        </button>
       </div>
 
       <!-- File upload zone -->
       <div id="file-section">
-        <label class="label">File</label>
+        <label class="label" data-i18n="fieldLabel">ไฟล์</label>
         <div id="dropzone" class="dropzone p-8 text-center">
           <input type="file" id="file-input" class="hidden">
           <i class="fa-solid fa-cloud-arrow-up text-4xl text-brand-400 mb-3"></i>
-          <p class="font-medium">Drag &amp; drop a file here, or
-            <span class="text-brand-600 underline cursor-pointer" id="browse-link">browse</span>
+          <p class="font-medium">
+            <span data-i18n="dzText">ลากและวางไฟล์ที่นี่ หรือ</span>
+            <span class="text-brand-600 underline cursor-pointer" id="browse-link" data-i18n="dzBrowse">เลือกไฟล์</span>
           </p>
           <p class="text-xs text-slate-400 mt-1" id="dz-hint">Documents, images, audio, video, PDF — up to 50&nbsp;MB</p>
         </div>
@@ -48,46 +53,52 @@
 
       <!-- External link -->
       <div id="link-section" class="hidden">
-        <label class="label">External URL</label>
-        <input id="m-link" class="field" placeholder="https://… (YouTube, web page, shared drive, etc.)">
+        <label class="label" data-i18n="fieldExtUrl">URL ภายนอก</label>
+        <input id="m-link" class="field"
+               data-i18n-placeholder="placeholderExtUrl"
+               placeholder="https://… (YouTube, เว็บไซต์ ฯลฯ)">
       </div>
 
       <!-- Metadata -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="md:col-span-2">
-          <label class="label">Media Title <span class="text-red-500">*</span></label>
+          <label class="label"><span data-i18n="fieldTitle">ชื่อสื่อ</span> <span class="text-red-500">*</span></label>
           <input id="m-title" class="field" required>
         </div>
         <div>
-          <label class="label">Media Type <span class="text-red-500">*</span></label>
+          <label class="label"><span data-i18n="fieldType">ประเภทสื่อ</span> <span class="text-red-500">*</span></label>
           <select id="m-type" class="field" required></select>
         </div>
         <div>
-          <label class="label">Department / Subject Group <span class="text-red-500">*</span></label>
+          <label class="label"><span data-i18n="fieldDept">แผนก / กลุ่มสาระ</span> <span class="text-red-500">*</span></label>
           <select id="m-dept" class="field" required></select>
         </div>
         <div>
-          <label class="label">Grade Level <span class="text-red-500">*</span></label>
+          <label class="label"><span data-i18n="fieldGrade">ระดับชั้น</span> <span class="text-red-500">*</span></label>
           <select id="m-grade" class="field" required></select>
         </div>
         <div>
-          <label class="label">Publication Status</label>
+          <label class="label" data-i18n="fieldStatus">สถานะการเผยแพร่</label>
           <select id="m-status" class="field"></select>
         </div>
         <div class="md:col-span-2">
-          <label class="label">Creator Name</label>
-          <input id="m-creator" class="field" placeholder="Defaults to your account">
+          <label class="label" data-i18n="fieldCreator">ชื่อผู้สร้าง</label>
+          <input id="m-creator" class="field"
+                 data-i18n-placeholder="fieldCreatorPh"
+                 placeholder="ค่าเริ่มต้นเป็นบัญชีของคุณ">
         </div>
         <div class="md:col-span-2">
-          <label class="label">Description</label>
-          <textarea id="m-desc" rows="3" class="field" placeholder="Short summary of the material…"></textarea>
+          <label class="label" data-i18n="fieldDesc">คำอธิบาย</label>
+          <textarea id="m-desc" rows="3" class="field"
+                    data-i18n-placeholder="fieldDescPh"
+                    placeholder="สรุปสั้นๆ ของเนื้อหา…"></textarea>
         </div>
       </div>
 
       <div class="flex items-center justify-end gap-2">
-        <a href="#repository" class="btn btn-ghost">Cancel</a>
+        <a href="#repository" class="btn btn-ghost" data-i18n="btnCancel">ยกเลิก</a>
         <button type="submit" id="save-btn" class="btn btn-primary">
-          <i class="fa-solid fa-floppy-disk"></i> Save Media
+          <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="btnSave">บันทึกสื่อ</span>
         </button>
       </div>
     </form>

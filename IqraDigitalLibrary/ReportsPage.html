@@ -7,12 +7,16 @@
   <section class="space-y-6">
     <div class="flex items-center justify-between flex-wrap gap-3">
       <div>
-        <h2 class="text-2xl font-bold">Statistical Reports</h2>
-        <p class="text-slate-400 text-sm">Insights and exportable summaries</p>
+        <h2 class="text-2xl font-bold" data-i18n="pageReportsTitle">รายงานสถิติ</h2>
+        <p class="text-slate-400 text-sm" data-i18n="pageReportsSub">ข้อมูลเชิงลึกและสรุปผล</p>
       </div>
       <div class="flex gap-2">
-        <button id="rep-pdf" class="btn btn-danger"><i class="fa-solid fa-file-pdf"></i> Download PDF</button>
-        <button id="rep-csv" class="btn btn-accent"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+        <button id="rep-pdf" class="btn btn-danger">
+          <i class="fa-solid fa-file-pdf"></i> <span data-i18n="btnDownloadPdf">ดาวน์โหลด PDF</span>
+        </button>
+        <button id="rep-csv" class="btn btn-accent">
+          <i class="fa-solid fa-file-excel"></i> <span data-i18n="btnExportExcel">ส่งออก Excel</span>
+        </button>
       </div>
     </div>
 
@@ -20,17 +24,17 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="ui-card shadow-card p-5">
-        <h3 class="font-semibold mb-4">Media by Department</h3>
+        <h3 class="font-semibold mb-4" data-i18n="chartByDept">สื่อตามแผนก</h3>
         <div class="h-72"><canvas id="rep-chart-dept"></canvas></div>
       </div>
       <div class="ui-card shadow-card p-5">
-        <h3 class="font-semibold mb-4">Media by Status</h3>
+        <h3 class="font-semibold mb-4" data-i18n="chartByStatus">สื่อตามสถานะ</h3>
         <div class="h-72"><canvas id="rep-chart-status"></canvas></div>
       </div>
     </div>
 
     <div class="ui-card shadow-card p-5">
-      <h3 class="font-semibold mb-4">Monthly Upload Trend</h3>
+      <h3 class="font-semibold mb-4" data-i18n="chartMonthlyTrend">แนวโน้มการอัปโหลดรายเดือน</h3>
       <div class="h-72"><canvas id="rep-chart-trend"></canvas></div>
     </div>
   </section>
