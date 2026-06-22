@@ -1,0 +1,52 @@
+<!--
+  CategoriesPage.html
+  "Category Management" view: add a department/group and list existing ones.
+  Behaviour: renderCategories() in JavaScript.html.
+-->
+<template id="page-categories">
+  <section class="space-y-6">
+    <div>
+      <h2 class="text-2xl font-bold">Category Management</h2>
+      <p class="text-slate-400 text-sm">Departments and subject groups used to organise media</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <!-- Add form -->
+      <div class="ui-card shadow-card p-5 h-fit">
+        <h3 class="font-semibold mb-4"><i class="fa-solid fa-plus text-brand-500 mr-2"></i>Add Category</h3>
+        <form id="cat-form" class="space-y-3">
+          <div>
+            <label class="label">Name <span class="text-red-500">*</span></label>
+            <input id="cat-name" class="field" required>
+          </div>
+          <div>
+            <label class="label">Type</label>
+            <select id="cat-type" class="field">
+              <option value="Department">Department</option>
+              <option value="Subject Group">Subject Group</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Description</label>
+            <textarea id="cat-desc" rows="2" class="field"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary w-full"><i class="fa-solid fa-plus"></i> Add</button>
+        </form>
+      </div>
+
+      <!-- List -->
+      <div class="ui-card shadow-card p-5 lg:col-span-2">
+        <h3 class="font-semibold mb-4"><i class="fa-solid fa-tags text-brand-500 mr-2"></i>Existing Categories</h3>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr><th>Name</th><th>Type</th><th>Description</th><th class="text-right">Actions</th></tr>
+            </thead>
+            <tbody id="cat-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</template>

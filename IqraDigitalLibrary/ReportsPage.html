@@ -1,0 +1,37 @@
+<!--
+  ReportsPage.html
+  "Statistical Reports" view: richer charts plus PDF / Excel export actions.
+  Behaviour: renderReports() in JavaScript.html.
+-->
+<template id="page-reports">
+  <section class="space-y-6">
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h2 class="text-2xl font-bold">Statistical Reports</h2>
+        <p class="text-slate-400 text-sm">Insights and exportable summaries</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="rep-pdf" class="btn btn-danger"><i class="fa-solid fa-file-pdf"></i> Download PDF</button>
+        <button id="rep-csv" class="btn btn-accent"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="rep-stat-cards"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="ui-card shadow-card p-5">
+        <h3 class="font-semibold mb-4">Media by Department</h3>
+        <div class="h-72"><canvas id="rep-chart-dept"></canvas></div>
+      </div>
+      <div class="ui-card shadow-card p-5">
+        <h3 class="font-semibold mb-4">Media by Status</h3>
+        <div class="h-72"><canvas id="rep-chart-status"></canvas></div>
+      </div>
+    </div>
+
+    <div class="ui-card shadow-card p-5">
+      <h3 class="font-semibold mb-4">Monthly Upload Trend</h3>
+      <div class="h-72"><canvas id="rep-chart-trend"></canvas></div>
+    </div>
+  </section>
+</template>

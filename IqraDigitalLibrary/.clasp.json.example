@@ -1,0 +1,8 @@
+{
+  "//": "Rename this file to .clasp.json and replace scriptId with your Apps Script project ID.",
+  "//2": "Get the scriptId from the Apps Script editor URL: script.google.com/.../projects/<scriptId>/edit",
+  "//3": "Then run `clasp push` from this folder to upload all .gs / .html / appsscript.json files.",
+  "scriptId": "REPLACE_WITH_YOUR_APPS_SCRIPT_PROJECT_ID",
+  "rootDir": ".",
+  "fileExtension": "gs"
+}

@@ -1,0 +1,47 @@
+<!--
+  DashboardPage.html
+  Dashboard view: summary stat cards + Chart.js visualisations + recent uploads.
+  Markup only; behaviour lives in JavaScript.html (renderDashboard()).
+-->
+<template id="page-dashboard">
+  <section class="space-y-6">
+
+    <!-- Page heading -->
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h2 class="text-2xl font-bold">Dashboard</h2>
+        <p class="text-slate-400 text-sm">Overview of your school's digital media library</p>
+      </div>
+      <a href="#upload" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Media</a>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="stat-cards">
+      <!-- populated by JS -->
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="ui-card shadow-card p-5">
+        <h3 class="font-semibold mb-4"><i class="fa-solid fa-chart-pie text-brand-500 mr-2"></i>Media by Type</h3>
+        <div class="h-64"><canvas id="chart-type"></canvas></div>
+      </div>
+      <div class="ui-card shadow-card p-5">
+        <h3 class="font-semibold mb-4"><i class="fa-solid fa-chart-line text-brand-500 mr-2"></i>Uploads (last 6 months)</h3>
+        <div class="h-64"><canvas id="chart-uploads"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Recent + top viewed -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="ui-card shadow-card p-5">
+        <h3 class="font-semibold mb-3"><i class="fa-solid fa-clock-rotate-left text-brand-500 mr-2"></i>Recent Uploads</h3>
+        <ul class="divide-y divide-slate-100 dark:divide-slate-700" id="recent-list"></ul>
+      </div>
+      <div class="ui-card shadow-card p-5">
+        <h3 class="font-semibold mb-3"><i class="fa-solid fa-fire text-accent-400 mr-2"></i>Most Viewed</h3>
+        <ul class="divide-y divide-slate-100 dark:divide-slate-700" id="top-list"></ul>
+      </div>
+    </div>
+  </section>
+</template>

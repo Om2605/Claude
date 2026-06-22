@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iqra Muslim School Digital Library</title>
+
+  <!-- ============================ External CDNs ============================ -->
+  <!-- Tailwind CSS (utility-first UI framework) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome (iconography) -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- SweetAlert2 (notifications / modals) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Chart.js (dashboard visualisations) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- QRCode.js (media sharing QR codes) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+  <!-- Project styles + Tailwind theme config (served from Styles.html) -->
+  <?!= include('Styles'); ?>
+</head>
+
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen">
+
+  <!-- =============================== Layout =============================== -->
+  <div class="flex min-h-screen">
+
+    <!-- ----------------------------- Sidebar ----------------------------- -->
+    <aside id="sidebar"
+           class="sidebar fixed lg:static z-40 w-64 h-screen bg-white dark:bg-slate-800
+                  border-r border-slate-200 dark:border-slate-700 flex flex-col
+                  -translate-x-full lg:translate-x-0 transition-transform duration-200">
+
+      <!-- Brand -->
+      <div class="flex items-center gap-3 px-5 h-16 border-b border-slate-200 dark:border-slate-700">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md">
+          <i class="fa-solid fa-book-open-reader text-lg"></i>
+        </div>
+        <div class="leading-tight">
+          <p class="font-bold text-blue-700 dark:text-blue-300">Iqra Library</p>
+          <p class="text-xs text-slate-400">Digital Repository</p>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1" id="nav-menu">
+        <a href="#dashboard"   class="nav-link" data-page="dashboard"><i class="fa-solid fa-gauge-high w-5"></i><span>Dashboard</span></a>
+        <a href="#repository"  class="nav-link" data-page="repository"><i class="fa-solid fa-photo-film w-5"></i><span>All Media</span></a>
+        <a href="#upload"      class="nav-link" data-page="upload"><i class="fa-solid fa-cloud-arrow-up w-5"></i><span>Add New Media</span></a>
+        <a href="#categories"  class="nav-link" data-page="categories"><i class="fa-solid fa-tags w-5"></i><span>Categories</span></a>
+        <a href="#reports"     class="nav-link" data-page="reports"><i class="fa-solid fa-chart-pie w-5"></i><span>Reports</span></a>
+        <a href="#settings"    class="nav-link" data-page="settings"><i class="fa-solid fa-gear w-5"></i><span>Settings</span></a>
+      </nav>
+
+      <!-- Sidebar footer -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-400">
+        <p>&copy; <span id="year"></span> Iqra Muslim School</p>
+      </div>
+    </aside>
+
+    <!-- Mobile sidebar backdrop -->
+    <div id="backdrop" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
+
+    <!-- --------------------------- Main column --------------------------- -->
+    <div class="flex-1 flex flex-col min-w-0">
+
+      <!-- Header -->
+      <header class="sticky top-0 z-20 h-16 bg-white/90 dark:bg-slate-800/90 backdrop-blur
+                     border-b border-slate-200 dark:border-slate-700 flex items-center
+                     justify-between px-4 lg:px-6">
+        <div class="flex items-center gap-3">
+          <button id="menu-toggle" class="lg:hidden text-slate-600 dark:text-slate-300 text-xl">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div>
+            <h1 class="font-bold text-base lg:text-lg text-slate-800 dark:text-white">
+              Iqra Muslim School
+            </h1>
+            <p class="text-xs text-slate-400 hidden sm:block">Digital Library System</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 lg:gap-3">
+          <!-- Dark mode toggle -->
+          <button id="theme-toggle" title="Toggle dark mode"
+                  class="w-10 h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700
+                         text-slate-600 dark:text-yellow-300 transition">
+            <i class="fa-solid fa-moon dark:hidden"></i>
+            <i class="fa-solid fa-sun hidden dark:inline"></i>
+          </button>
+
+          <!-- User chip -->
+          <div class="flex items-center gap-2 pl-2 lg:pl-3 border-l border-slate-200 dark:border-slate-700">
+            <div class="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700
+                        dark:text-blue-200 flex items-center justify-center font-semibold"
+                 id="user-avatar">?</div>
+            <div class="hidden sm:block leading-tight">
+              <p class="text-sm font-medium" id="user-email">Loading…</p>
+              <p class="text-xs text-slate-400"><span id="user-role">—</span></p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page content host: page partials are swapped in here -->
+      <main id="app-content" class="flex-1 p-4 lg:p-6 max-w-7xl w-full mx-auto">
+        <div class="flex items-center justify-center h-64 text-slate-400">
+          <i class="fa-solid fa-spinner fa-spin text-3xl"></i>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ===================== Page templates (hidden) ===================== -->
+  <!-- Each partial provides a <template> the router clones into #app-content. -->
+  <?!= include('DashboardPage'); ?>
+  <?!= include('RepositoryPage'); ?>
+  <?!= include('UploadPage'); ?>
+  <?!= include('CategoriesPage'); ?>
+  <?!= include('ReportsPage'); ?>
+  <?!= include('SettingsPage'); ?>
+
+  <!-- The initial page chosen server-side (deep-link support). -->
+  <script>
+    window.INITIAL_PAGE = '<?= initialPage ?>';
+  </script>
+
+  <!-- Application logic (served from JavaScript.html) -->
+  <?!= include('JavaScript'); ?>
+</body>
+</html>

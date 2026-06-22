@@ -1,0 +1,95 @@
+/*
+ * assets/styles.css
+ * ---------------------------------------------------------------------------
+ * READABLE REFERENCE COPY of the custom CSS.
+ *
+ * NOTE: Google Apps Script cannot serve standalone .css files — the live source
+ * of truth is Styles.html (which also contains the Tailwind theme config).
+ * This file mirrors the custom component rules for easier review/editing and
+ * for reuse outside of GAS. Keep it in sync with Styles.html if you change it.
+ * ---------------------------------------------------------------------------
+ */
+
+/* ---- Base ---- */
+html { scroll-behavior: smooth; }
+body { -webkit-font-smoothing: antialiased; }
+
+/* ---- Sidebar navigation links ---- */
+.nav-link {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.625rem 0.875rem; border-radius: 0.75rem;
+  font-size: 0.925rem; font-weight: 500; color: #475569;
+  transition: all 0.15s ease;
+}
+.dark .nav-link { color: #cbd5e1; }
+.nav-link:hover { background: #eff6ff; color: #1d4ed8; }
+.dark .nav-link:hover { background: #1e293b; color: #93c5fd; }
+.nav-link.active { background: #2563eb; color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,0.35); }
+.dark .nav-link.active { background: #1d4ed8; color: #fff; }
+
+/* ---- Cards ---- */
+.ui-card {
+  background: #fff; border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(37,99,235,0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.dark .ui-card { background: #1e293b; }
+.media-card { overflow: hidden; }
+.media-card:hover { transform: translateY(-4px); box-shadow: 0 8px 28px rgba(37,99,235,0.18); }
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  padding: 0.55rem 1rem; border-radius: 0.625rem; font-weight: 600; font-size: 0.9rem;
+  transition: all 0.15s ease; cursor: pointer; border: 1px solid transparent;
+}
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-accent { background: #fde047; color: #713f12; }
+.btn-accent:hover { background: #facc15; }
+.btn-ghost { background: transparent; color: #475569; border-color: #e2e8f0; }
+.btn-ghost:hover { background: #f1f5f9; }
+.dark .btn-ghost { color: #cbd5e1; border-color: #334155; }
+.dark .btn-ghost:hover { background: #334155; }
+.btn-danger { background: #ef4444; color: #fff; }
+.btn-danger:hover { background: #dc2626; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ---- Form fields ---- */
+.field {
+  width: 100%; padding: 0.6rem 0.8rem; border-radius: 0.625rem;
+  border: 1px solid #e2e8f0; background: #fff; color: #0f172a; font-size: 0.9rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96,165,250,0.25); }
+.dark .field { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+.label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.3rem; color: #475569; }
+.dark .label { color: #94a3b8; }
+
+/* ---- Badges ---- */
+.badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.72rem; font-weight: 600; }
+.badge-type { background: #dbeafe; color: #1d4ed8; }
+.dark .badge-type { background: #1e3a8a; color: #bfdbfe; }
+.badge-published { background: #dcfce7; color: #166534; }
+.badge-draft { background: #fef9c3; color: #854d0e; }
+.badge-archived { background: #f1f5f9; color: #475569; }
+
+/* ---- Upload dropzone ---- */
+.dropzone { border: 2px dashed #93c5fd; border-radius: 1rem; background: #eff6ff; transition: all 0.2s ease; cursor: pointer; }
+.dark .dropzone { background: #0f172a; border-color: #1e40af; }
+.dropzone.dragover { background: #dbeafe; border-color: #2563eb; transform: scale(1.01); }
+
+/* ---- Progress bar ---- */
+.progress-track { background: #e2e8f0; border-radius: 999px; overflow: hidden; height: 0.6rem; }
+.dark .progress-track { background: #334155; }
+.progress-bar { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, #2563eb, #60a5fa); transition: width 0.2s ease; }
+
+/* ---- Tables ---- */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; padding: 0.65rem 0.75rem; border-bottom: 2px solid #e2e8f0; background: #f8fafc; }
+.dark .data-table th { background: #0f172a; color: #94a3b8; border-color: #334155; }
+.data-table td { padding: 0.65rem 0.75rem; border-bottom: 1px solid #eef2f7; font-size: 0.88rem; }
+.dark .data-table td { border-color: #1e293b; }
+
+/* ---- Utilities ---- */
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
