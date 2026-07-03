@@ -83,6 +83,8 @@ var TRANSLATIONS = {
     colStatus:           'สถานะ',
     colActions:          'จัดการ',
     btnView:             'ดู',
+    viewCards:           'มุมมองการ์ด',
+    viewTable:           'มุมมองตาราง',
 
     /* Upload */
     pageUploadTitle:     'เพิ่มสื่อใหม่',
@@ -160,6 +162,7 @@ var TRANSLATIONS = {
     deleteCatTitle:      'ลบหมวดหมู่?',
     deleteCatText:       'สื่อที่มีอยู่จะยังคงป้ายแผนกเดิม',
     editMediaTitle:      'แก้ไขสื่อ',
+    btnEdit:             'แก้ไข',
     btnDelete:           'ลบ',
     btnSaveEdit:         'บันทึก',
     labelTitleEdit:      'ชื่อ',
@@ -189,6 +192,7 @@ var TRANSLATIONS = {
     errChooseFile:       'กรุณาเลือกไฟล์',
     errEnterUrl:         'กรุณาใส่ URL',
     errFileTooLarge:     'ไฟล์มีขนาดใหญ่เกินไป',
+    errExtNotAllowed:    'ไฟล์ประเภทนี้ไม่ได้รับอนุญาต',
     errCouldNotRead:     'ไม่สามารถอ่านไฟล์ได้',
 
     /* Progress */
@@ -275,6 +279,8 @@ var TRANSLATIONS = {
     colStatus:           'Status',
     colActions:          'Actions',
     btnView:             'View',
+    viewCards:           'Card view',
+    viewTable:           'Table view',
 
     /* Upload */
     pageUploadTitle:     'Add New Media',
@@ -352,6 +358,7 @@ var TRANSLATIONS = {
     deleteCatTitle:      'Delete category?',
     deleteCatText:       'Existing media keep their department label.',
     editMediaTitle:      'Edit Media',
+    btnEdit:             'Edit',
     btnDelete:           'Delete',
     btnSaveEdit:         'Save',
     labelTitleEdit:      'Title',
@@ -381,6 +388,7 @@ var TRANSLATIONS = {
     errChooseFile:       'Please choose a file',
     errEnterUrl:         'Please enter a URL',
     errFileTooLarge:     'File is too large',
+    errExtNotAllowed:    'This file type is not allowed',
     errCouldNotRead:     'Could not read file',
 
     /* Progress */
@@ -469,6 +477,9 @@ function applyI18n() {
   });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
     el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(function (el) {
+    el.title = t(el.getAttribute('data-i18n-title'));
   });
 }
 
@@ -798,8 +809,8 @@ function mediaTableRow(m) {
 
 function editButtons(m) {
   if (!APP.user || !APP.user.canEdit) return '';
-  return '<button class="btn btn-ghost text-xs" title="Edit" onclick="editMedia(\'' + m.mediaId + '\')"><i class="fa-solid fa-pen"></i></button> ' +
-    '<button class="btn btn-ghost text-xs text-red-500" title="Delete" onclick="confirmDelete(\'' + m.mediaId + '\',\'' + escapeAttr(m.title) + '\')"><i class="fa-solid fa-trash"></i></button>';
+  return '<button class="btn btn-ghost text-xs" title="' + t('btnEdit') + '" onclick="editMedia(\'' + m.mediaId + '\')"><i class="fa-solid fa-pen"></i></button> ' +
+    '<button class="btn btn-ghost text-xs text-red-500" title="' + t('btnDelete') + '" onclick="confirmDelete(\'' + m.mediaId + '\',\'' + escapeAttr(m.title) + '\')"><i class="fa-solid fa-trash"></i></button>';
 }
 
 function renderPagination(result) {
@@ -943,7 +954,7 @@ function setUploadMode(mode) {
 function acceptFile(file) {
   var ext = (file.name.split('.').pop() || '').toLowerCase();
   if (APP.options.allowedExtensions.indexOf(ext) === -1) {
-    toastErr('.' + ext + ' — ' + t('errFileTooLarge').replace('large', 'allowed').replace('ใหญ่', 'อนุญาต'));
+    toastErr('.' + ext + ' — ' + t('errExtNotAllowed'));
     return;
   }
   if (file.size > APP.options.maxFileSize) { toastErr(t('errFileTooLarge')); return; }
